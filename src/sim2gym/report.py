@@ -51,9 +51,14 @@ def build_leaderboard(results_dir, task_set_hash: str | None = None) -> dict:
     for r in rows:
         groups[(r.get("model"), r.get("task_set_hash"))].append(r)
     table = []
-    for (model, h), rs in groups.items():
+    for (model, h), all_rs in groups.items():
+        # Infra failures (rate limits, provider errors) are not the model's answer: exclude them from scores
+        # and report them as incomplete instead of counting them as 0.
+        errs = sum(1 for r in all_rs if r.get("infra_error"))
+        rs = [r for r in all_rs if not r.get("infra_error")]
         n = len(rs)
-        errs = sum(1 for r in rs if r.get("infra_error"))
+        if n == 0:
+            continue
         table.append({
             "model": model, "task_set_hash": h, "baseline": any(r.get("baseline") for r in rs), "n": n,
             "mean_score": sum(r.get("score", 0.0) for r in rs) / n,
@@ -86,7 +91,7 @@ def to_markdown(lb: dict) -> str:
         out.append("_No results yet._")
     for h, rs in by_hash.items():
         out += [f"Task set `{h}`", "",
-                "| model | type | n | mean score | solve rate (>=0.95) | feasible | mean sim calls | mean latency (s) | errors |",
+                "| model | type | n | mean score | solve rate (>=0.95) | feasible | mean sim calls | mean latency (s) | incomplete (infra errors) |",
                 "|---|---|---:|---:|---:|---:|---:|---:|---:|"]
         for r in rs:
             out.append("| {model} | {typ} | {n} | {ms:.3f} | {sr:.0%} | {fr:.0%} | {sc:.2f} | {lat:.2f} | {err} |".format(
@@ -95,6 +100,7 @@ def to_markdown(lb: dict) -> str:
                 err=r["errors"]))
         out.append("")
     out.append("Score = optimum cycles / answer cycles (exhaustive optimum, real SCALE-Sim), 0 if infeasible. "
+               "n = tasks with a graded answer; rate-limit/provider failures are excluded and shown as incomplete. "
                "Baselines are not model inference.")
     return "\n".join(out) + "\n"
 

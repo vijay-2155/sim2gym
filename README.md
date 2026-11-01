@@ -19,8 +19,8 @@ Built on open source:
 | Project | Role |
 |---|---|
 | [SCALE-Sim](https://github.com/scalesim-project/scale-sim-v2) (`scalesim` 3.0.0, Georgia Tech) | Real cycle-level systolic-array simulator; grades every answer |
-| [OpenRouter](https://openrouter.ai) free open-weight models (Nemotron, Gemma 4, …) | Models under evaluation |
-| Amazon Bedrock open-weight models (Qwen3, gpt-oss, Mistral, DeepSeek, Gemma 3, …) | Optional paid backend, guarded to short tests |
+| Amazon Bedrock open-weight models (Nemotron, Qwen3, gpt-oss, Mistral, DeepSeek, Gemma 3) | Models evaluated on the leaderboard |
+| [OpenRouter](https://openrouter.ai) free open-weight models (Nemotron, Gemma 4, …) | Free backend (rate-limited free tier) |
 | Ollama / any OpenAI-compatible server | Optional local backend |
 | Python, NumPy, FastAPI | Core, API and live demo |
 
@@ -86,7 +86,55 @@ one scoring path.
 
 ## Results
 
-<!-- RESULTS -->
+All 36 tasks (`tasks.jsonl`, task set `903fb5045d2d4d26`), on Amazon Bedrock open-weight models at temperature 0.
+Every number below comes from `results/*.jsonl` (see [`leaderboard.md`](leaderboard.md)).
+
+| Model | Type | n | Mean score | Solved (≥0.95) | Feasible | Mean sim calls | Mean latency (s) |
+|---|---|---:|---:|---:|---:|---:|---:|
+| oracle (exhaustive optimum) | baseline | 36 | 1.000 | 100% | 100% | 0.00 | – |
+| **Nemotron Super 3 120B** (`nvidia.nemotron-super-3-120b`) | model | 36 | **0.838** | 56% | 100% | 5.00 | 5.3 |
+| **Qwen3 32B** (`qwen.qwen3-32b-v1:0`) | model | 36 | **0.804** | 53% | 100% | 5.06 | 7.4 |
+| gpt-oss 120B (`openai.gpt-oss-120b-1:0`) | model | 36 | 0.706 | 36% | 100% | 3.11 | 11.2 |
+| **6-probe** (6 random simulator calls, keep the best) | baseline | 36 | 0.650 | 28% | 100% | 6.00 | – |
+| Mistral Large 3 675B (`mistral.mistral-large-3-675b-instruct`) | model | 36 | 0.590 | 22% | 94% | 0.42 | 5.4 |
+| max-square-ws (largest square array, ws dataflow) | baseline | 36 | 0.521 | 8% | 100% | 0.00 | – |
+| random feasible design | baseline | 36 | 0.380 | 8% | 100% | 0.00 | – |
+
+DeepSeek V3.2 and Gemma 3 27B are still running (about 40–60 s per turn). Their partial results are in
+`leaderboard.md` and are not ranked here.
+
+### What the results show
+
+- **Experimenting beats size.** The two models that used the simulator budget (about 5 calls per task) beat
+  the 6-probe baseline. Mistral Large 3 answered **33 of 36 tasks without a single simulator call** and scored below
+  6-probe. 2 of its answers used array sizes that are not allowed, so they score 0. gpt-oss 120B used about 3 calls
+  and landed in between.
+- **A "bigger array is better" bias.** In 12–17 of the 36 tasks, each model's final array was larger than the
+  optimal one.
+
+### A real failure (from `results/bedrock_qwen.qwen3-32b-v1_0.jsonl`)
+
+**Task:** `bert_tiny_mlp_down_s8`, a GEMM (8×512)·(512×128) with a 4096-PE budget. The exhaustive optimum is
+**8×8, os: 8,415 cycles at 97% utilisation**.
+
+| Qwen3 32B call | Design | SCALE-Sim cycles | Utilisation |
+|---|---|---:|---:|
+| 1 | 64×64 os | 13,231 | 1.0% |
+| 2 | 32×64 os | 13,167 | 1.9% |
+| 3 | 16×64 os | 13,135 | 3.9% |
+| 4 | 8×64 os | 13,119 | 7.8% |
+| 5 | 64×64 ws | 13,107 | 1.0% |
+| **answer** | **64×64 ws** | **13,107** | score **0.64** |
+
+The model shrank only the height and never tried a narrow array, although utilisation was about 1%. Mistral Large 3
+answered 32×64 ws on this task without simulating. On ResNet-18's `layer4` downsample, Qwen3 found the tall-skinny
+optimum **64×8** by experiment (score 1.0). Mistral guessed 64×32 without simulating and scored 0.40.
+
+### Free models (OpenRouter)
+
+The OpenRouter backend works and was tested live, but free-tier keys are capped at 50 free-model requests per day.
+Our 12-task run of Nemotron 3.5 Super, Nemotron 3 Ultra, dots-3-note and Gemma 4 hit that cap after 1–3 tasks per
+model. Those partial results are in `results_eval/` and are not ranked.
 
 ## Wrap your own simulator
 
@@ -129,7 +177,7 @@ is no auth, sessions live in memory (lost on restart), and it needs a single wor
 | Prefix | Backend | Notes |
 |---|---|---|
 | `openrouter:<id>` | OpenRouter (main) | Free models (`:free`); temperature 0; max 12k tokens, because reasoning models think first; 429s back off and honour Retry-After |
-| `bedrock:<modelId>` | Amazon Bedrock Converse (us-east-1, AWS CLI credentials) | **Paid:** by default capped at 2 tasks × 2 turns and written to `results/smoke/`; `--allow-paid` lifts the cap |
+| `bedrock:<modelId>` | Amazon Bedrock Converse (us-east-1, AWS CLI credentials) | **Paid:** by default capped at 2 tasks × 2 turns and written to `results/smoke/`; `--allow-paid` (CLI) or `SIM2GYM_ALLOW_PAID=1` (server) lifts the cap |
 | `openai:<model>` | Any OpenAI-compatible server (e.g. Ollama) | Uses `SIM2GYM_BASE_URL` |
 | `oracle`, `random`, `max-square-ws`, `6-probe` | Baselines, labelled as such | Not model inference |
 
@@ -140,8 +188,8 @@ is no auth, sessions live in memory (lost on restart), and it needs a single wor
   that simulation stays fast.
 - SCALE-Sim models cycles, not area or power; the PE budget stands in for area. The reported cycles cover compute
   plus stalls, excluding the initial prefetch and the final DRAM drain.
-- Evaluated only on free hosted open models, on a 12-task subset, because of free-tier rate limits. No RL training
-  run yet.
+- Evaluated on hosted open-weight models at temperature 0, one run each, 36 tasks. That is enough to see patterns,
+  not to claim fine-grained rankings. No RL training run yet.
 - Prior work: LUMINA (Mar 2026) and PerfReasoning (Sep 2026) already test LLMs on hardware trade-offs. sim2gym's
   contribution is a **generator of black-box, budgeted environments from real simulators**, not "the first
   chip-reasoning benchmark".

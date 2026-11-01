@@ -2,9 +2,15 @@
 __pycache__/
 *.pyc
 .pytest_cache/
-results/
-cache/
-scalesim_out/
 *.egg-info/
 .env
+.impeccable/
+scalesim_out/
+# keep saved eval results + SCALE-Sim cache (evidence for README numbers, instant demo after clone)
+results/live/
+results/runs/
+results/smoke/
+results/logs/
+results_eval/logs/
 results_eval/live/
+results_eval_log.txt

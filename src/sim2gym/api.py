@@ -58,6 +58,9 @@ def allowed_models() -> list[dict]:
 
 
 def default_model() -> str:
+    override = os.environ.get("SIM2GYM_DEFAULT_MODEL", "").strip()
+    if override:  # server-side choice, e.g. bedrock:qwen.qwen3-32b-v1:0 when the free quota is used up
+        return override
     return models_mod.default_free_model(models_mod.openrouter_free_models()) or models_mod.FALLBACK_DEMO_MODEL
 
 
