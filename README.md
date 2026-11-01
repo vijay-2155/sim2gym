@@ -99,12 +99,13 @@ Every number below comes from `results/*.jsonl` (see [`leaderboard.md`](leaderbo
 | **Qwen3 32B** (`qwen.qwen3-32b-v1:0`) | model | 36 | **0.804** | 53% | 100% | 5.06 | 7.4 |
 | Gemma 3 27B (`google.gemma-3-27b-it`) | model | 36 | 0.709 | 36% | 100% | 4.97 | 34.0 |
 | gpt-oss 120B (`openai.gpt-oss-120b-1:0`) | model | 36 | 0.706 | 36% | 100% | 3.11 | 11.2 |
+| DeepSeek V3.2 (`deepseek.v3.2`) | model | 36 | 0.704 | 36% | 100% | 5.11 | 68.9 |
 | **6-probe** (6 random simulator calls, keep the best) | baseline | 36 | 0.650 | 28% | 100% | 6.00 | – |
 | Mistral Large 3 675B (`mistral.mistral-large-3-675b-instruct`) | model | 36 | 0.590 | 22% | 94% | 0.42 | 5.4 |
 | max-square-ws (largest square array, ws dataflow) | baseline | 36 | 0.521 | 8% | 100% | 0.00 | – |
 | random feasible design | baseline | 36 | 0.380 | 8% | 100% | 0.00 | – |
 
-DeepSeek V3.2 is still running (about 60 s per turn). Its partial results are in `leaderboard.md` and are not ranked here.
+All six models ran on the same 36 tasks with the same settings.
 
 ### What the results show
 
