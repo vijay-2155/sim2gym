@@ -351,9 +351,9 @@ details.tv td, details.tv th { font-size: 13.5px; }
         <div class="lbhead"><h2>Models vs baselines</h2><span class="muted" id="lbsub"></span></div>
         <div id="lbwarn"></div>
         <div class="tblscroll">
-        <table><thead><tr><th>Model</th><th>Type</th><th class="num">n</th><th>Mean score</th><th class="num">Solved ≥0.95</th>
+        <table><thead><tr><th>Model</th><th>Type</th><th class="num">n</th><th>Mean score</th><th class="num">95% CI</th><th class="num">Solved ≥0.95</th>
           <th class="num">Feasible</th><th class="num">Sim calls</th><th class="num">Latency s</th><th class="num">Errors</th></tr></thead>
-          <tbody id="lb"><tr><td colspan="9" class="muted">Loading…</td></tr></tbody></table>
+          <tbody id="lb"><tr><td colspan="10" class="muted">Loading…</td></tr></tbody></table>
         </div>
         <div class="lbnote">Score = exhaustive-optimum cycles ÷ answer cycles (real SCALE-Sim); 0 if infeasible or no answer. Baselines are not model inference.</div>
       </div>
@@ -562,10 +562,11 @@ async function loadLB() {
     $("lbsub").textContent = lb.task_set_hashes.length ? `task set ${lb.task_set_hashes.join(", ")}` : "";
     $("lb").innerHTML = lb.rows.length ? lb.rows.map(r => `<tr><td><b>${esc(r.model)}</b></td><td>${r.baseline ? '<span class="tag">baseline</span>' : '<span class="tag blue">model</span>'}</td>` +
       `<td class="num">${r.n}</td><td><span class="lbtrack"><span class="lbbar" style="width:${(120 * r.mean_score).toFixed(0)}px"></span></span><b>${r.mean_score.toFixed(3)}</b></td>` +
+      `<td class="num">${r.ci95 ? "±" + r.ci95.toFixed(3) : /exact/.test(r.model) ? "exact" : "–"}</td>` +
       `<td class="num">${(100 * r.solve_rate).toFixed(0)}%</td><td class="num">${(100 * r.feasible_rate).toFixed(0)}%</td>` +
       `<td class="num">${r.mean_sim_calls.toFixed(2)}</td><td class="num">${r.mean_latency_s.toFixed(1)}</td><td class="num">${r.errors}</td></tr>`).join("")
-      : `<tr><td colspan="9" class="muted">No results yet. Run: sim2gym run tasks.jsonl --model oracle</td></tr>`;
-  } catch (e) { $("lb").innerHTML = `<tr><td colspan="9" class="muted">${esc(e.message)}</td></tr>`; }
+      : `<tr><td colspan="10" class="muted">No results yet. Run: sim2gym run tasks.jsonl --model oracle</td></tr>`;
+  } catch (e) { $("lb").innerHTML = `<tr><td colspan="10" class="muted">${esc(e.message)}</td></tr>`; }
 }
 
 const VIEWS = ["insights", "live", "lb"];

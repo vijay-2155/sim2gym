@@ -300,8 +300,9 @@ def create_app(tasks_path: str | os.PathLike | None = None, results_dir: str | o
 
     @app.get("/leaderboard")
     def leaderboard():
-        lb = report.build_leaderboard(results_dir) if results_dir.exists() else {"rows": [], "warnings": [],
-                                                                                 "task_set_hashes": []}
+        default = task_sets().get("default", {}).get("tasks")
+        lb = report.build_leaderboard(results_dir, tasks=default) if results_dir.exists() else {
+            "rows": [], "warnings": [], "task_set_hashes": []}
         return {**lb, "markdown": report.to_markdown(lb)}
 
     @app.get("/insights")

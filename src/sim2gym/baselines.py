@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import random
 
 from sim2gym.packs import accel
@@ -95,6 +96,25 @@ class Probe(Baseline):
         else:  # no successful probe: fall back to a seeded random feasible design
             best = _rng(self.task["id"], self.seed).choice(accel.feasible_designs(int(self.task["pe_budget"])))
         return _say("answer", best, "6-probe baseline: best probe.")
+
+
+def expected_probe(task: dict, probes: int) -> dict:
+    """Exact expected score and solve rate of the best of ``probes`` distinct uniform random feasible designs.
+
+    ``probes=1`` is the random baseline. One seeded run of a random baseline is a single draw; this is its
+    mean over every possible draw, so model rows can be compared against it without seed luck.
+    """
+    from sim2gym import grading
+
+    scores = sorted(grading.grade_design(task, d)["score"] for d in accel.feasible_designs(int(task["pe_budget"])))
+    n = len(scores)
+    k = min(probes, n)
+    if k < 1:
+        raise ValueError("probes must be at least 1")
+    # The best of k draws is the i-th smallest score when it is drawn and the other k-1 come from below it.
+    mean = sum(s * math.comb(i, k - 1) for i, s in enumerate(scores)) / math.comb(n, k)
+    unsolved = sum(1 for s in scores if s < 0.95)
+    return {"mean_score": mean, "solve_rate": 1 - math.comb(unsolved, k) / math.comb(n, k), "probes": k}
 
 
 _REGISTRY = {c.name: c for c in (Oracle, RandomDesign, MaxSquareWS, Probe)}

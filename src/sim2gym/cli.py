@@ -83,11 +83,12 @@ def cmd_quota(args) -> int:
 
 def cmd_report(args) -> int:
     from sim2gym import report
-    h = None
+    h = tasks = None
     if args.tasks:
         from sim2gym.runner import load_tasks, task_set_hash
-        h = task_set_hash(load_tasks(args.tasks))
-    lb = report.write_report(args.results_dir, args.output, task_set_hash=h)
+        tasks = load_tasks(args.tasks)
+        h = task_set_hash(tasks)
+    lb = report.write_report(args.results_dir, args.output, task_set_hash=h, tasks=tasks)
     for w in lb["warnings"]:
         print("WARNING: " + w, file=sys.stderr)
     print(open(args.output).read())
