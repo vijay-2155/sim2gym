@@ -54,8 +54,10 @@ The page streams the episode over Server-Sent Events:
 - every SCALE-Sim call (array, dataflow, cycles, utilisation) against the budget meter
 - the final design next to the exhaustive optimum, with its score
 
-The **Leaderboard** tab reads `results/`.
+The **Leaderboard** tab reads `results/`. The **Insights** view (the landing page) explains the project and the
+findings in plain language for non-engineers. Its numbers are computed live from `results/` by `GET /insights`.
 
+![Insights](docs/screenshots/insights.png)
 ![Live episode](docs/screenshots/live-episode.png)
 ![Leaderboard](docs/screenshots/leaderboard.png)
 

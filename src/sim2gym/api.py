@@ -24,7 +24,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from sim2gym import __version__, report, runner
+from sim2gym import __version__, insights, report, runner
 from sim2gym import tasks as tasks_mod
 from sim2gym.baselines import BASELINES
 from sim2gym.env import Sim2GymEnv
@@ -303,6 +303,13 @@ def create_app(tasks_path: str | os.PathLike | None = None, results_dir: str | o
         lb = report.build_leaderboard(results_dir) if results_dir.exists() else {"rows": [], "warnings": [],
                                                                                  "task_set_hashes": []}
         return {**lb, "markdown": report.to_markdown(lb)}
+
+    @app.get("/insights")
+    def get_insights():
+        """Plain-language analysis of the saved results on the default task set (complete runs only)."""
+        with lock:
+            ts = list(state["task_sets"].get("default", {}).get("tasks", []))
+        return insights.build_insights(ts, results_dir)
 
     # ---------------------------------------------------------- demo
     @app.get("/", include_in_schema=False)

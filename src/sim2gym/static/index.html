@@ -10,9 +10,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 :root {
+  color-scheme: light;
   --font: "Lato", system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  --side: #3F0E40; --side-2: #350D36; --side-line: rgba(255,255,255,.12); --side-text: #FFFFFF; --side-muted: #D9CFD9;
+  --side: #3F0E40; --side-2: #350D36; --side-line: rgba(255,255,255,.12); --side-text: #FFFFFF; --side-muted: rgba(255,255,255,.74);
   --side-hover: rgba(255,255,255,.09); --side-active: #1164A3;
   --bg: #FFFFFF; --bg-2: #F8F8F8; --bg-3: #F1F1F1; --line: #E2E2E2; --text: #1D1C1D; --muted: #616061;
   --link: #1264A3; --focus: #1264A3; --good: #2BAC76; --good-ink: #007A5A; --warn: #ECB22E; --warn-ink: #7A5A00;
@@ -21,17 +22,8 @@
   --shadow: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
   --av-model: #6B3FA0; --av-sim: #1264A3; --av-env: #5E5D60; --av-grader: #007A5A;
   --bar: #1264A3; --r: 8px;
+  --series: #1264A3; --series-base: #8F8D8F; --ref: #616061; --grid: #ECECEC;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --side: #19171D; --side-2: #121016; --side-line: rgba(255,255,255,.10); --side-muted: #C9C3CC; --side-hover: rgba(255,255,255,.07);
-    --bg: #1A1D21; --bg-2: #222529; --bg-3: #2A2D31; --line: #35373B; --text: #E8E8E8; --muted: #ABABAD;
-    --link: #1D9BD1; --focus: #1D9BD1; --good-ink: #2BAC76; --warn-ink: #ECB22E; --bad-ink: #F2668F;
-    --code-bg: #222529; --code-line: #3A3C40; --tag-bg: #35373B; --tag-ink: #D1D2D3;
-    --shadow: 0 1px 3px rgba(0,0,0,.45); --bar: #1D9BD1; --av-env: #6F6E72;
-  }
-}
-:root[data-theme="dark"] { color-scheme: dark; }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.46 var(--font); }
 button, select { font: inherit; }
@@ -41,8 +33,8 @@ button, select { font: inherit; }
 
 /* ---------- shell */
 .app { display: grid; grid-template-columns: 292px minmax(0, 1fr) 410px; height: 100vh; }
-.app.lb { grid-template-columns: 292px minmax(0, 1fr); }
-.app.lb #details { display: none; }
+.app.wide { grid-template-columns: 292px minmax(0, 1fr); }
+.app.wide #details { display: none; }
 
 /* ---------- sidebar */
 .side { background: var(--side); color: var(--side-text); display: flex; flex-direction: column; min-height: 0; }
@@ -167,11 +159,80 @@ tr.best .bar { background: var(--good); opacity: 1; }
 .lbnote { padding: 12px 18px 16px; color: var(--muted); font-size: 13.5px; }
 .tblscroll { overflow-x: auto; }
 
+/* ---------- insights */
+.ins { overflow-y: auto; flex: 1; min-height: 0; background: var(--bg-2); }
+.ins-inner { max-width: 1120px; margin: 0 auto; padding: 28px 28px 56px; }
+.ins h2 { font-size: 21px; font-weight: 900; margin: 40px 0 4px; letter-spacing: -0.01em; }
+.ins .lede { color: var(--muted); margin: 0 0 16px; max-width: 64ch; }
+.eyebrow { color: var(--muted); font-size: 13.5px; font-weight: 700; }
+.hero h1 { font-size: 32px; line-height: 1.18; font-weight: 900; margin: 6px 0 12px; letter-spacing: -0.02em; max-width: 30ch; }
+.hero .answer { font-size: 18px; line-height: 1.5; max-width: 62ch; margin: 0 0 20px; }
+.hero .answer b { font-weight: 900; }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.kpi { padding: 16px 18px; }
+.kpi .lab { color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.kpi .val { font-size: 44px; font-weight: 900; line-height: 1.05; margin: 6px 0 4px; letter-spacing: -0.02em; }
+.kpi .val small { font-size: 16px; font-weight: 700; color: var(--muted); letter-spacing: 0; }
+.kpi .sub { color: var(--muted); font-size: 14px; }
+.kpi .sub b { color: var(--text); }
+.sw { width: 10px; height: 10px; border-radius: 3px; flex: none; display: inline-block; }
+.sw.model { background: var(--series); } .sw.base { background: var(--series-base); }
+.gloss { margin-top: 14px; padding: 12px 16px; border-radius: var(--r); background: var(--bg); border: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 22px; font-size: 14px; color: var(--muted); }
+.gloss b { color: var(--text); }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.step { padding: 16px 18px; }
+.step .n { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-3); color: var(--text); display: grid; place-items: center; font-weight: 900; margin-bottom: 10px; }
+.step h3, .finding h3 { margin: 0 0 6px; font-size: 16.5px; font-weight: 900; }
+.step p, .finding p { margin: 0; color: var(--text); }
+.findings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.finding { padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+.finding .stat { font-size: 36px; font-weight: 900; line-height: 1; letter-spacing: -0.02em; }
+.finding .statlab { color: var(--muted); font-size: 13.5px; margin-top: -2px; }
+.todo { margin-top: auto; padding: 10px 12px; border-radius: 6px; background: var(--bg-2); font-size: 14.5px; }
+.todo b { color: var(--good-ink); }
+.chartcard { padding: 18px 18px 8px; }
+.chartcard h3 { margin: 0; font-size: 17px; font-weight: 900; }
+.chartcard .csub { color: var(--muted); font-size: 14px; margin: 2px 0 10px; max-width: 64ch; }
+.chartgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13.5px; color: var(--muted); margin-bottom: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend .ln { width: 14px; height: 0; border-top: 1px solid var(--ref); display: inline-block; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart text { font-family: var(--font); }
+.chart .hit { fill: transparent; cursor: default; outline: none; }
+.chart .hit:focus-visible { stroke: var(--focus); stroke-width: 2; }
+details.tv { margin: 6px 0 8px; font-size: 14px; }
+details.tv summary { color: var(--link); cursor: pointer; padding: 4px 0; width: max-content; }
+details.tv table { margin-top: 6px; }
+details.tv td, details.tv th { font-size: 13.5px; }
+.excard { padding: 18px; }
+.exmeta { max-width: 100ch; display: flex; gap: 8px 22px; flex-wrap: wrap; color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+.exmeta b { color: var(--text); }
+.excard table td { font-size: 14.5px; }
+.excard tr.ans td { border-top: 2px solid var(--line); }
+.excard tr.opt td { background: color-mix(in srgb, var(--good) 10%, transparent); }
+.lesson { margin-top: 14px; padding: 12px 14px; max-width: 64ch; border-radius: 6px; background: var(--bg-2); font-size: 15px; }
+.exscore { display: flex; align-items: baseline; gap: 10px; margin-top: 12px; }
+.exscore .big { font-size: 34px; font-weight: 900; }
+.insempty { padding: 26px; max-width: 64ch; }
+.insempty code { font: 13.5px var(--mono); background: var(--code-bg); border: 1px solid var(--code-line); padding: 2px 6px; border-radius: 4px; }
+#tip { position: fixed; z-index: 50; pointer-events: none; background: #1D1C1D; color: #FFFFFF; font-size: 13px; line-height: 1.45;
+  padding: 7px 10px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.18); white-space: pre-line; max-width: 280px; display: none; }
+@media (max-width: 1100px) { .chartgrid { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .kpis, .steps, .findings, .gloss { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 25px; }
+  .hero .answer { font-size: 16.5px; }
+  .ins-inner { padding: 18px 16px 40px; }
+  .kpi .val { font-size: 38px; }
+}
+
 /* ---------- responsive */
-@media (max-width: 1240px) { .app { grid-template-columns: 260px minmax(0, 1fr) 360px; } .app.lb { grid-template-columns: 260px minmax(0, 1fr); } }
+@media (max-width: 1240px) { .app { grid-template-columns: 260px minmax(0, 1fr) 360px; } .app.wide { grid-template-columns: 260px minmax(0, 1fr); } }
 @media (max-width: 960px) {
   html, body { height: auto; }
-  .app, .app.lb { display: block; height: auto; }
+  .app, .app.wide { display: block; height: auto; }
   .side-scroll { overflow: visible; }
   .chan-list { max-height: 210px; overflow-y: auto; }
   .views { display: flex; gap: 6px; padding: 0 8px; }
@@ -183,16 +244,19 @@ tr.best .bar { background: var(--good); opacity: 1; }
   .msg { padding: 8px 16px; }
   .typing { padding-left: 64px; }
   .lbwrap { padding: 12px 16px; }
+  .ins { overflow: visible; }
 }
 @media (max-width: 480px) {
   .actions { width: 100%; justify-content: space-between; }
   .det-sec { padding: 12px 16px; }
-  th.hide-s, td.hide-s { display: none; }
+  th.hide-s, td.hide-s, span.hide-s { display: none; }
+  .views .item { white-space: nowrap; padding: 6px 4px; font-size: 14px; }
+  .views .item svg { display: none; }
 }
 </style>
 </head>
 <body>
-<div class="app" id="app">
+<div class="app wide" id="app">
   <aside class="side" aria-label="Workspace">
     <div class="ws">
       <div class="ws-name">sim2gym
@@ -204,7 +268,10 @@ tr.best .bar { background: var(--good); opacity: 1; }
       <div class="sec">
         <div class="sec-h">Views</div>
         <div class="views">
-          <button class="item on" id="tab-live">
+          <button class="item on" id="tab-insights">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 7.2v3.6M8 5.2v.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            Insights</button>
+          <button class="item" id="tab-live">
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
             Live episode</button>
           <button class="item" id="tab-lb">
@@ -224,7 +291,7 @@ tr.best .bar { background: var(--good); opacity: 1; }
     </div>
   </aside>
 
-  <section class="main" id="view-live" aria-label="Live episode">
+  <section class="main hidden" id="view-live" aria-label="Live episode">
     <header class="chan-h">
       <div class="chan-t">
         <div class="chan-name" id="channame"># loading</div>
@@ -266,6 +333,14 @@ tr.best .bar { background: var(--good); opacity: 1; }
     </div>
   </aside>
 
+  <section class="main" id="view-insights" aria-label="Insights">
+    <header class="chan-h">
+      <div class="chan-t"><div class="chan-name">Insights</div>
+        <div class="topic">What sim2gym tests, and what we found, in plain language</div></div>
+    </header>
+    <div class="ins" id="ins"><div class="ins-inner"><div class="empty">Loading insights…</div></div></div>
+  </section>
+
   <section class="main hidden" id="view-lb" aria-label="Leaderboard">
     <header class="chan-h">
       <div class="chan-t"><div class="chan-name">Leaderboard</div>
@@ -285,6 +360,7 @@ tr.best .bar { background: var(--good); opacity: 1; }
     </div>
   </section>
 </div>
+<div id="tip" role="tooltip"></div>
 <script>
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -308,6 +384,7 @@ async function init() {
     const groups = [["free", "Free (OpenRouter)"], ["local", "Local (OpenAI-compatible)"], ["baseline", "Baselines"],
       ["bedrock", ms.allow_paid ? "Bedrock (paid)" : `Bedrock (paid, short tests: max ${ms.paid_guard.max_turns} turns)`]];
     ms.models.forEach(m => MODELS[m.id] = m);
+    ALLOW_PAID = !!ms.allow_paid;
     $("model").innerHTML = groups.map(([g, label]) => {
       const opts = ms.models.filter(m => m.group === g);
       return opts.length ? `<optgroup label="${esc(label)}">${opts.map(m => `<option value="${esc(m.id)}">${esc(m.label)}</option>`).join("")}</optgroup>` : "";
@@ -326,10 +403,11 @@ function chanName(n) {  // keep the distinguishing tail (e.g. "_s128") visible w
   return `<span class="cname"><span class="pre">${esc(pre)}</span><span class="suf">${esc(suf)}</span></span>`;
 }
 
+let ALLOW_PAID = false;
 function modelNote() {
   const m = MODELS[$("model").value];
   $("modelnote").textContent = !m ? "Models run server-side." : m.group === "baseline" ? "Baseline: not model inference."
-    : m.group === "bedrock" ? "Paid backend: short test episodes." : m.group === "free" ? "Free tier: rate-limited, ~10–25 s per turn." : "Local model.";
+    : m.group === "bedrock" ? (ALLOW_PAID ? "Amazon Bedrock open-weight model (paid, ~5–10 s per turn)." : "Paid backend: short test episodes.") : m.group === "free" ? "Free tier: rate-limited, ~10–25 s per turn." : "Local model.";
 }
 
 function selectTask(i) {
@@ -490,15 +568,262 @@ async function loadLB() {
   } catch (e) { $("lb").innerHTML = `<tr><td colspan="9" class="muted">${esc(e.message)}</td></tr>`; }
 }
 
+const VIEWS = ["insights", "live", "lb"];
 function tab(which) {
-  $("tab-live").classList.toggle("on", which === "live"); $("tab-lb").classList.toggle("on", which === "lb");
-  $("view-live").classList.toggle("hidden", which !== "live"); $("view-lb").classList.toggle("hidden", which !== "lb");
-  $("app").classList.toggle("lb", which === "lb");
+  VIEWS.forEach(v => { $("tab-" + v).classList.toggle("on", v === which); $("view-" + v).classList.toggle("hidden", v !== which); });
+  $("app").classList.toggle("wide", which !== "live");
   if (which === "lb") loadLB();
+  if (which === "insights") loadInsights();
 }
-$("tab-live").onclick = () => tab("live"); $("tab-lb").onclick = () => tab("lb");
+VIEWS.forEach(v => $("tab-" + v).onclick = () => tab(v));
 $("model").onchange = modelNote; $("run").onclick = run;
+/* ---------------- Insights view (inline SVG charts, no libraries) ---------------- */
+let INS = null, insLoading = false;
+const pct = (v, d = 0) => (v == null || isNaN(v)) ? "–" : (100 * v).toFixed(d) + "%";
+const svgEsc = esc;
+const CH = {series: "#1264A3", base: "#8F8D8F", ref: "#616061", grid: "#ECECEC", text: "#1D1C1D", muted: "#616061", surface: "#FFFFFF"};
+
+async function loadInsights() {
+  if (insLoading) return;
+  insLoading = true;
+  try {
+    const r = await fetch("/insights");
+    INS = r.ok ? await r.json() : {ready: false, _status: r.status};
+  } catch (e) { INS = {ready: false, _error: e.message}; }
+  insLoading = false;
+  renderInsights();
+}
+
+function insEmpty(d) {
+  const steps = (d && d.how_it_works) ? howItWorks(d.how_it_works) : "";
+  return `<div class="card insempty"><h2 style="margin-top:0">No results to explain yet</h2>
+    <p>sim2gym needs at least one finished evaluation before it can show insights. Run an evaluation first, for example
+    <code>sim2gym run tasks.jsonl --model 6-probe</code>, then reload this page.</p>
+    <p class="muted">You can still watch a model work in <b>Live episode</b>.</p></div>${steps}`;
+}
+
+function howItWorks(list) {
+  return `<h2>How it works</h2><p class="lede">Three steps, the same for every AI model.</p>
+    <div class="steps">${list.map((s, i) => `<div class="card step"><div class="n">${i + 1}</div><h3>${esc(s.title)}</h3><p>${esc(s.body)}</p></div>`).join("")}</div>`;
+}
+
+function renderInsights() {
+  const box = $("ins").querySelector(".ins-inner"), d = INS;
+  if (!d || !d.ready) { box.innerHTML = insEmpty(d); return; }
+  const h = d.headline, verdict = h.beat_probe === 0 ? "Not yet." : h.best_score >= 0.95 ? "Yes." : "Partly.";
+  const diff = h.best_vs_probe_pct;
+  box.innerHTML = `
+  <section class="hero">
+    <div class="eyebrow">sim2gym · AI models tested on a real chip simulator</div>
+    <h1>Can AI models design a chip by running experiments, the way engineers do?</h1>
+    <p class="answer"><b>${verdict}</b> The best model, <b>${esc(h.best_model)}</b>, reached <b>${pct(h.best_score)}</b> of the best possible design on average,
+      ${diff >= 0 ? `${Math.abs(diff).toFixed(0)}% better than` : `${Math.abs(diff).toFixed(0)}% worse than`} simply trying 6 random designs (${pct(h.probe_score)}).
+      <b>${h.beat_probe} of ${d.n_models}</b> models beat that simple strategy, across ${d.n_tasks} design tasks.</p>
+    <div class="kpis">
+      <div class="card kpi"><div class="lab"><span class="sw model"></span>Best AI model</div>
+        <div class="val">${pct(h.best_score)}</div><div class="sub"><b>${esc(h.best_model)}</b>${h.best_solve_rate != null ? ` · found the exact best design in ${pct(h.best_solve_rate)} of tasks` : ""}</div></div>
+      <div class="card kpi"><div class="lab"><span class="sw base"></span>Random search (6 random tries)</div>
+        <div class="val">${pct(h.probe_score)}</div><div class="sub"><b>${h.beat_probe} of ${d.n_models}</b> AI models beat this</div></div>
+      <div class="card kpi"><div class="lab"><span class="sw base"></span>Random guess</div>
+        <div class="val">${pct(h.random_score)}</div><div class="sub">One random design, no experiments</div></div>
+    </div>
+    <div class="gloss">
+      <div><b>Score</b>: the best possible chip's speed divided by the AI's chip speed. 100% means it found the fastest design.</div>
+      <div><b>PE budget</b>: how much chip area you're allowed, counted in tiny calculators (processing elements).</div>
+      <div><b>Cycles</b>: how long the chip takes to do the job. Fewer is faster.</div>
+    </div>
+  </section>
+  ${howItWorks(d.how_it_works || [])}
+  <h2>Key findings</h2><p class="lede">Computed from ${d.n_tasks} tasks per model, every answer checked on the real simulator.</p>
+  <div class="findings">${(d.findings || []).map(f => `<div class="card finding">
+      <div><div class="stat">${esc(f.stat)}</div><div class="statlab">${esc(f.stat_label)}</div></div>
+      <h3>${esc(f.title)}</h3><p>${esc(f.body)}</p>
+      <div class="todo"><b>What to do:</b> ${esc(f.takeaway)}</div></div>`).join("")}</div>
+  <h2>The numbers</h2><p class="lede">Hover or tab to a bar or dot for details; each chart also has a table view.</p>
+  <div class="card chartcard"><h3>How close each AI got to the best possible chip</h3>
+    <div class="csub">Average score across ${d.n_tasks} tasks. Gray rows are simple strategies without AI, for comparison.</div>
+    <div class="legend"><span><span class="sw model"></span>AI model</span><span><span class="sw base"></span>Simple strategy (no AI)</span>
+      <span><span class="ln"></span>Random search, 6 tries</span></div>
+    <div class="chart" id="ch-bars"></div>${tableView("ch-bars-t")}</div>
+  <div class="chartgrid">
+    <div class="card chartcard"><h3>Experimenting pays</h3>
+      <div class="csub">Each dot is an AI model: how many simulator tests it ran per task (out of 6) and its average score.</div>
+      <div class="chart" id="ch-scatter"></div>${tableView("ch-scatter-t")}</div>
+    <div class="card chartcard"><h3>Which jobs are hardest</h3>
+      <div class="csub">Average AI score on each real neural-network step, hardest first.</div>
+      <div class="chart" id="ch-work"></div>${tableView("ch-work-t")}</div>
+  </div>
+  ${exampleHTML(d.example)}`;
+  drawInsightCharts();
+}
+
+function tableView(id) { return `<details class="tv"><summary>Show as table</summary><div class="tblscroll" id="${id}"></div></details>`; }
+
+function exampleHTML(ex) {
+  if (!ex) return "";
+  const rows = ex.steps.map((s, i) => `<tr><td>Test ${i + 1}</td><td><b>${esc(s.design)}</b></td><td class="num">${fmt(s.cycles)}</td><td class="num hide-s">${s.util == null ? "–" : s.util.toFixed(1) + "%"}</td></tr>`).join("");
+  return `<h2>One real example</h2><p class="lede">A single task, step by step, exactly as the AI played it.</p>
+  <div class="card excard">
+    <div class="exmeta"><span>Job: <b>${esc(ex.task_plain)}</b></span><span>AI: <b>${esc(ex.model)}</b></span>
+      <span>PE budget (chip area allowed): <b>${fmt(ex.budget_pe)}</b> calculators</span></div>
+    <div class="tblscroll"><table>
+      <thead><tr><th>Step</th><th>Chip design<span class="hide-s"> (grid × dataflow)</span></th><th class="num">Cycles<span class="hide-s"> (fewer is faster)</span></th><th class="num hide-s">How busy the chip was</th></tr></thead>
+      <tbody>${rows}
+        <tr class="ans"><td>AI's answer</td><td><b>${esc(ex.answer.design)}</b></td><td class="num">${fmt(ex.answer.cycles)}</td><td class="num hide-s"></td></tr>
+        <tr class="opt"><td>Best possible</td><td><b>${esc(ex.optimum.design)}</b></td><td class="num">${fmt(ex.optimum.cycles)}</td><td class="num hide-s">${ex.optimum.util == null ? "" : ex.optimum.util.toFixed(1) + "%"}</td></tr>
+      </tbody></table></div>
+    <div class="exscore"><span class="big">${pct(ex.score)}</span><span class="muted">score on this task</span></div>
+    <div class="lesson"><b>Lesson:</b> ${esc(ex.lesson)}</div>
+  </div>`;
+}
+
+/* ---- svg helpers */
+function barPath(x, y, w, h) {  // 4px rounded data-end (right), square at the baseline (left)
+  if (w <= 0) return "";
+  const r = Math.min(4, w, h / 2);
+  return `M${x},${y}h${w - r}a${r},${r} 0 0 1 ${r},${r}v${h - 2 * r}a${r},${r} 0 0 1 -${r},${r}h-${w - r}z`;
+}
+const _mctx = document.createElement("canvas").getContext("2d");
+function textW(s, size = 13.5, weight = 400) { _mctx.font = `${weight} ${size}px ${getComputedStyle(document.body).fontFamily}`; return _mctx.measureText(s).width; }
+function fitText(s, px, size = 13.5, weight = 400) {
+  if (textW(s, size, weight) <= px) return s;
+  let t = s; while (t.length > 3 && textW(t + "…", size, weight) > px) t = t.slice(0, -1);
+  return t.trimEnd() + "…";
+}
+function tipAttr(t) { return `data-tip="${svgEsc(t)}" tabindex="0"`; }
+function xTicks(x, top, bottom, fmtFn = v => pct(v)) {
+  return [0, .25, .5, .75, 1].map(v => `<line x1="${x(v)}" x2="${x(v)}" y1="${top}" y2="${bottom}" stroke="${CH.grid}" stroke-width="1"/>` +
+    `<text x="${x(v)}" y="${bottom + 18}" text-anchor="middle" font-size="12" fill="${CH.muted}" style="font-variant-numeric:tabular-nums">${fmtFn(v)}</text>`).join("");
+}
+function simpleTable(head, rows) {
+  return `<table><thead><tr>${head.map((h, i) => `<th${i ? ' class="num"' : ""}>${esc(h)}</th>`).join("")}</tr></thead>` +
+    `<tbody>${rows.map(r => `<tr>${r.map((c, i) => `<td${i ? ' class="num"' : ""}>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+
+function drawBars() {
+  const el = $("ch-bars"); if (!el) return;
+  const d = INS, W = el.clientWidth, narrow = W < 560;
+  const rows = d.rows.filter(r => r.id !== "oracle"), probe = d.headline.probe_score;
+  // wide: label column left of the bars; narrow: each label sits above its bar so names are never cut
+  const probeLab = `random search ${pct(probe)}`, bestLab = "best possible 100%";
+  const labelW = narrow ? 0 : 250, valW = 46, rowH = narrow ? 42 : 32, barH = narrow ? 12 : 16;
+  const plotW = Math.max(60, W - labelW - valW - 8), x = v => labelW + v * plotW;
+  const clash = x(probe) + textW(probeLab, 12) / 2 > x(1) - textW(bestLab, 12) - 6;
+  const top = clash ? 42 : 26, bottom = top + rows.length * rowH;
+  let s = xTicks(x, top - 6, bottom);
+  rows.forEach((r, i) => {
+    const y = top + i * rowH, wt = r.baseline ? 400 : 700, w = r.mean_score * plotW;
+    const by = narrow ? y + 21 : y + (rowH - barH) / 2, ty = narrow ? y + 31.5 : y + rowH / 2 + 4.5;
+    s += narrow ? `<text x="0" y="${y + 15}" font-size="13.5" fill="${r.baseline ? CH.muted : CH.text}" font-weight="${wt}">${svgEsc(fitText(r.label, W - 4, 13.5, wt))}</text>`
+      : `<text x="${labelW - 10}" y="${ty}" text-anchor="end" font-size="13.5" fill="${r.baseline ? CH.muted : CH.text}" font-weight="${wt}">${svgEsc(fitText(r.label, labelW - 14, 13.5, wt))}</text>`;
+    s += `<path d="${barPath(labelW, by, w, barH)}" fill="${r.baseline ? CH.base : CH.series}"/>`;
+    s += `<text x="${labelW + w + 6}" y="${ty}" font-size="13" font-weight="700" fill="${CH.text}">${pct(r.mean_score)}</text>`;
+    s += `<rect class="hit" x="0" y="${y}" width="${W}" height="${rowH}" ${tipAttr(`${r.label}${r.baseline ? " (no AI)" : ""}\nAverage score ${pct(r.mean_score, 1)}\nExact best design found: ${pct(r.solve_rate)} of tasks\nSimulator tests per task: ${r.mean_sim_calls.toFixed(1)}\nValid (within budget): ${pct(r.feasible_rate)}`)}/>`;
+  });
+  // reference lines: random search (6 tries) and best possible = 100%
+  s += `<line x1="${x(probe)}" x2="${x(probe)}" y1="${top - 6}" y2="${bottom}" stroke="${CH.ref}" stroke-width="1"/>`;
+  s += `<text x="${Math.max(textW(probeLab, 12) / 2, x(probe))}" y="${clash ? top - 27 : top - 11}" text-anchor="middle" font-size="12" fill="${CH.muted}">${probeLab}</text>`;
+  s += `<line x1="${x(1)}" x2="${x(1)}" y1="${top - 6}" y2="${bottom}" stroke="${CH.ref}" stroke-width="1"/>`;
+  s += `<text x="${x(1)}" y="${top - 11}" text-anchor="end" font-size="12" fill="${CH.muted}">${bestLab}</text>`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${bottom + 26}" height="${bottom + 26}" role="img" aria-label="Average score per model">${s}</svg>`;
+  $("ch-bars-t").innerHTML = simpleTable(["Model", "Type", "Avg score", "Exact best found", "Tests per task", "Valid designs"],
+    d.rows.map(r => [r.label, r.baseline ? "no AI" : "AI model", pct(r.mean_score, 1), pct(r.solve_rate), r.mean_sim_calls.toFixed(1), pct(r.feasible_rate)]));
+}
+
+function drawScatter() {
+  const el = $("ch-scatter"); if (!el) return;
+  const d = INS, pts = d.experiment_vs_score || [], W = el.clientWidth; let H = W < 420 ? 290 : 340;
+  const L = 46, R = 14, T = 14, B = 46; H = Math.max(H, 340); const maxX = Math.max(6, ...pts.map(p => Math.ceil(p.mean_sim_calls)));
+  const lo = Math.max(0, Math.floor((Math.min(d.headline.random_score, ...pts.map(p => p.mean_score)) - 0.1) * 10) / 10);
+  const x = v => L + v / maxX * (W - L - R), y = v => T + (1 - (v - lo) / (1 - lo)) * (H - T - B);
+  let s = "";
+  for (let v = lo; v <= 1.0001; v += 0.1) {
+    const major = Math.round(v * 100) % 20 === 0 || lo >= 0.3;
+    s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${CH.grid}"/>`;
+    if (major) s += `<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="12" fill="${CH.muted}" style="font-variant-numeric:tabular-nums">${pct(v)}</text>`;
+  }
+  for (let v = 0; v <= maxX; v++) s += `<text x="${x(v)}" y="${H - B + 18}" text-anchor="middle" font-size="12" fill="${CH.muted}">${v}</text>`;
+  s += `<line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke="#D5D5D5"/>`;
+  s += `<text x="${(L + W - R) / 2}" y="${H - 8}" text-anchor="middle" font-size="12.5" fill="${CH.muted}">simulator tests per task</text>`;
+  const boxes = [], marks = [], labels = [];
+  const overlaps = (bx) => boxes.some(o => bx[0] < o[2] && bx[2] > o[0] && bx[1] < o[3] && bx[3] > o[1]);
+  [...pts].sort((a, b) => b.mean_score - a.mean_score).forEach(p => {
+    const cx = x(p.mean_sim_calls), cy = y(p.mean_score);
+    boxes.push([cx - 8, cy - 8, cx + 8, cy + 8]);
+    marks.push(`<circle cx="${cx}" cy="${cy}" r="5.5" fill="${CH.series}" stroke="${CH.surface}" stroke-width="2"/>` +
+      `<circle class="hit" cx="${cx}" cy="${cy}" r="13" ${tipAttr(`${p.label}\n${p.mean_sim_calls.toFixed(1)} tests per task\nAverage score ${pct(p.mean_score, 1)}`)}/>`);
+  });
+  [[d.headline.probe_score, "random search (6 tries)"], [d.headline.random_score, "random guess"]].forEach(([v, lab]) => {
+    if (v < lo) return;
+    s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${CH.ref}" stroke-width="1"/>`;
+    const t = `${lab} ${pct(v)}`, tw = textW(t, 12);
+    const spots = [[W - R, "end"], [L + 6 + tw, "end"], [(L + W - R + tw) / 2, "end"]];
+    for (const [tx, anc] of spots) {
+      for (const dy of [-5, 14]) {
+        const bx = [tx - tw - 2, y(v) + dy - 12, tx + 2, y(v) + dy + 3];
+        if (overlaps(bx)) continue;
+        boxes.push(bx);
+        labels.push(`<text x="${tx}" y="${y(v) + dy}" text-anchor="${anc}" font-size="12" fill="${CH.muted}">${t}</text>`);
+        return;
+      }
+    }
+  });
+  [...pts].sort((a, b) => b.mean_score - a.mean_score).forEach(p => {
+    const cx = x(p.mean_sim_calls), cy = y(p.mean_score), t = fitText(p.label, 150, 12.5), tw = textW(t, 12.5);
+    const cands = [[cx + 10, cy + 4, "start", [cx + 9, cy - 9, cx + 11 + tw, cy + 6]], [cx - 10, cy + 4, "end", [cx - 11 - tw, cy - 9, cx - 9, cy + 6]],
+      [cx + 10, cy - 10, "start", [cx + 9, cy - 23, cx + 11 + tw, cy - 7]], [cx - 10, cy - 10, "end", [cx - 11 - tw, cy - 23, cx - 9, cy - 7]],
+      [cx + 10, cy + 18, "start", [cx + 9, cy + 5, cx + 11 + tw, cy + 21]], [cx - 10, cy + 18, "end", [cx - 11 - tw, cy + 5, cx - 9, cy + 21]]];
+    for (const [tx, ty, anc, b] of cands) {
+      if (b[0] < L || b[2] > W - 2 || b[1] < 0 || overlaps(b)) continue;
+      boxes.push(b);
+      labels.push(`<text x="${tx}" y="${ty}" text-anchor="${anc}" font-size="12.5" fill="${CH.text}">${svgEsc(t)}</text>`);
+      break;
+    }
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Simulator tests per task versus score">${s}${labels.join("")}${marks.join("")}</svg>`;
+  $("ch-scatter-t").innerHTML = simpleTable(["Model", "Tests per task", "Avg score"], pts.map(p => [p.label, p.mean_sim_calls.toFixed(1), pct(p.mean_score, 1)]));
+}
+
+function drawWork() {
+  const el = $("ch-work"); if (!el) return;
+  const rows = INS.workloads || [], W = el.clientWidth, narrow = W < 460;
+  const labelW = 0, valW = 44, top = 8, rowH = 40, barH = 12;  // label sits above its bar, so names are never cut
+  const plotW = Math.max(50, W - valW - 6), x = v => labelW + v * plotW, bottom = top + rows.length * rowH;
+  let s = xTicks(x, top, bottom);
+  rows.forEach((r, i) => {
+    const y = top + i * rowH, w = r.avg_model_score * plotW;
+    s += `<text x="0" y="${y + 15}" font-size="13" fill="${CH.text}">${svgEsc(fitText(r.plain, W - 4, 13))}</text>`;
+    s += `<path d="${barPath(labelW, y + 21, w, barH)}" fill="${CH.series}"/>`;
+    s += `<text x="${labelW + w + 6}" y="${y + 31.5}" font-size="12.5" font-weight="700" fill="${CH.text}">${pct(r.avg_model_score)}</text>`;
+    s += `<rect class="hit" x="0" y="${y}" width="${W}" height="${rowH}" ${tipAttr(`${r.plain}\nAverage AI score ${pct(r.avg_model_score, 1)}\nBest AI ${pct(r.best_model_score)} · worst AI ${pct(r.worst_model_score)}`)}/>`;
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${bottom + 26}" height="${bottom + 26}" role="img" aria-label="Average AI score per workload">${s}</svg>`;
+  $("ch-work-t").innerHTML = simpleTable(["Job", "Avg AI score", "Best AI", "Worst AI"],
+    rows.map(r => [r.plain, pct(r.avg_model_score, 1), pct(r.best_model_score), pct(r.worst_model_score)]));
+}
+
+function drawInsightCharts() { if (!INS || !INS.ready) return; drawBars(); drawScatter(); drawWork(); }
+let rsT = null;
+window.addEventListener("resize", () => { clearTimeout(rsT); rsT = setTimeout(() => { if (!$("view-insights").classList.contains("hidden")) drawInsightCharts(); }, 120); });
+
+/* ---- tooltip (hover + keyboard focus) */
+(function () {
+  const tip = $("tip");
+  const show = (t, x, y) => {
+    tip.textContent = t; tip.style.display = "block";
+    const r = tip.getBoundingClientRect();
+    tip.style.left = Math.max(8, Math.min(x + 14, innerWidth - r.width - 8)) + "px";
+    tip.style.top = Math.max(8, (y + 16 + r.height > innerHeight ? y - r.height - 12 : y + 16)) + "px";
+  };
+  const hide = () => { tip.style.display = "none"; };
+  document.addEventListener("mousemove", (e) => { const t = e.target.closest && e.target.closest("[data-tip]"); t ? show(t.getAttribute("data-tip"), e.clientX, e.clientY) : hide(); });
+  document.addEventListener("focusin", (e) => { const t = e.target.closest && e.target.closest("[data-tip]"); if (!t) return hide(); const b = t.getBoundingClientRect(); show(t.getAttribute("data-tip"), b.left + b.width / 2, b.top + b.height / 2); });
+  document.addEventListener("focusout", hide);
+  document.addEventListener("scroll", hide, true);
+})();
+
 init();
+tab("insights");
 </script>
 </body>
 </html>
