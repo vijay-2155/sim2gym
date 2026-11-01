@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sim2gym"
+version = "0.1.0"
+description = "Turn real simulators into budgeted black-box RL environments and benchmarks for open models (AccelGym on SCALE-Sim)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = ["numpy", "scalesim==3.0.0", "openai>=1.0", "boto3", "fastapi", "uvicorn"]
+
+[project.optional-dependencies]
+dev = ["pytest", "httpx"]
+
+[project.scripts]
+sim2gym = "sim2gym.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+sim2gym = ["static/*"]

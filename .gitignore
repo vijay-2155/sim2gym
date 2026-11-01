@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+results/
+cache/
+scalesim_out/
+*.egg-info/
+.env

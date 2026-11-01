@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sim2gym AccelGym</title>
+<style>
+:root {
+  --bg: #0d1117; --panel: #151b23; --panel2: #1c2430; --line: #2a3441; --text: #e8edf3; --muted: #93a1b2;
+  --accent: #5cc8ff; --accent-ink: #04111c; --good: #4ade80; --warn: #fbbf24; --bad: #f87171; --model: #c4b5fd; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { --bg: #f6f8fa; --panel: #ffffff; --panel2: #f0f3f6; --line: #d4dbe3; --text: #111820; --muted: #57606a;
+    --accent: #0969da; --accent-ink: #ffffff; --good: #1a7f37; --warn: #9a6700; --bad: #cf222e; --model: #6f42c1; }
+}
+:root[data-theme="dark"] { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text);
+  font: 17px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif; }
+header { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; padding: 18px 28px 10px; }
+header h1 { margin: 0; font-size: 28px; letter-spacing: -0.02em; }
+header h1 span { color: var(--accent); }
+header .sub { color: var(--muted); font-size: 16px; }
+nav { margin-left: auto; display: flex; gap: 6px; }
+nav button { background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 8px;
+  padding: 7px 16px; font: inherit; font-size: 15px; cursor: pointer; }
+nav button.on { color: var(--text); border-color: var(--accent); background: var(--panel2); }
+main { padding: 8px 28px 32px; }
+.controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.controls label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.05em; }
+select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+  padding: 9px 10px; font: inherit; font-size: 16px; min-width: 260px; max-width: 100%; }
+#run { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 11px 26px;
+  font: inherit; font-weight: 700; cursor: pointer; }
+#run:disabled { opacity: 0.5; cursor: wait; }
+#status { color: var(--muted); font-size: 15px; margin-left: 4px; }
+.taskinfo { margin: 14px 0; padding: 12px 16px; border: 1px solid var(--line); border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--panel)); font-size: 16px; }
+.taskinfo .k { color: var(--muted); }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 16px; }
+@media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-height: 120px; }
+.panel h2 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+#chat { max-height: 62vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.msg { border-radius: 10px; padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line); }
+.msg .who { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; display: flex; gap: 8px; }
+.msg.model .who b { color: var(--model); }
+.msg.env .who b { color: var(--accent); }
+.msg pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 14.5px/1.45 var(--mono); }
+.msg.err { border-color: var(--bad); }
+.msg.pending { border-style: dashed; color: var(--muted); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--model); margin-right: 8px;
+  animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+.meter { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 16px; }
+.pips { display: flex; gap: 6px; }
+.pip { width: 26px; height: 14px; border-radius: 4px; border: 1px solid var(--line); background: var(--panel2); }
+.pip.used { background: var(--accent); border-color: var(--accent); }
+table { width: 100%; border-collapse: collapse; font-size: 16px; }
+th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+  font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); }
+tr.best td { background: color-mix(in srgb, var(--good) 12%, transparent); }
+tr.bad td { color: var(--bad); }
+.bar { height: 10px; border-radius: 5px; background: var(--accent); min-width: 2px; }
+tr.best .bar { background: var(--good); }
+.barcell { width: 26%; }
+.final { margin-top: 16px; display: none; }
+.final.show { display: block; }
+.cmp { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 14px; align-items: center; font-size: 17px; }
+.cmp .lab { color: var(--muted); }
+.cmp .d { font-family: var(--mono); }
+.score { display: flex; align-items: baseline; gap: 14px; margin-top: 14px; }
+.score .big { font-size: 54px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 14px; font-weight: 700; border: 1px solid; }
+.badge.good { color: var(--good); border-color: var(--good); }
+.badge.mid { color: var(--warn); border-color: var(--warn); }
+.badge.bad { color: var(--bad); border-color: var(--bad); }
+.badge.base { color: var(--muted); border-color: var(--line); font-weight: 600; }
+.muted { color: var(--muted); }
+.empty { color: var(--muted); font-style: italic; }
+#lbwarn div { color: var(--warn); margin-bottom: 6px; }
+.lbbar { display: inline-block; height: 10px; border-radius: 5px; background: var(--accent); vertical-align: middle; margin-right: 8px; }
+.hidden { display: none; }
+footer { color: var(--muted); font-size: 13px; padding: 0 28px 20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>sim2gym <span>AccelGym</span></h1>
+  <div class="sub">An LLM designs a systolic-array accelerator. Each answer is graded by the real SCALE-Sim simulator, and the model gets a limited number of simulator calls to experiment.</div>
+  <nav><button id="tab-live" class="on">Live episode</button><button id="tab-lb">Leaderboard</button></nav>
+</header>
+<main>
+<section id="view-live">
+  <div class="controls">
+    <label>Task (layer · PE budget)<select id="task"></select></label>
+    <label>Model<select id="model"></select></label>
+    <button id="run">Run</button>
+    <span id="status"></span>
+  </div>
+  <div id="taskinfo" class="taskinfo muted">Loading tasks…</div>
+  <div class="grid">
+    <div class="panel"><h2>Model ↔ environment</h2><div id="chat"><div class="empty">Pick a task and a model, then press Run.</div></div></div>
+    <div class="panel">
+      <h2>SCALE-Sim calls</h2>
+      <div class="meter"><span>Budget</span><div id="pips" class="pips"></div><span id="budgettxt" class="muted"></span></div>
+      <table>
+        <thead><tr><th>#</th><th>Array</th><th>Dataflow</th><th>SRAM</th><th class="num">Cycles</th><th class="num">Util %</th><th class="barcell"></th></tr></thead>
+        <tbody id="sims"><tr><td colspan="7" class="empty">No simulator calls yet.</td></tr></tbody>
+      </table>
+      <div id="final" class="final">
+        <h2 style="margin-top:6px">Result</h2>
+        <div class="cmp" id="cmp"></div>
+        <div class="score"><div class="big" id="scorebig">–</div><div id="scoretxt"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="view-lb" class="hidden">
+  <div class="panel">
+    <h2>Leaderboard (results/*.jsonl)</h2>
+    <div id="lbwarn"></div>
+    <table><thead><tr><th>Model</th><th>Type</th><th class="num">n</th><th>Mean score</th><th class="num">Solve ≥0.95</th>
+      <th class="num">Feasible</th><th class="num">Sim calls</th><th class="num">Latency s</th><th class="num">Errors</th></tr></thead>
+      <tbody id="lb"><tr><td colspan="9" class="empty">Loading…</td></tr></tbody></table>
+    <p class="muted">Score = exhaustive-optimum cycles ÷ answer cycles (real SCALE-Sim). 0 if infeasible or no answer. Baselines are not model inference.</p>
+  </div>
+</section>
+</main>
+<footer>Local demo server (no auth). Model calls run server-side; the model only sees the task prompt and the simulator's observations, never the optimum.</footer>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = (n) => (n === null || n === undefined) ? "–" : Number(n).toLocaleString("en-US");
+const dstr = (d) => (d && typeof d === "object") ? `${d.array_h}×${d.array_w} ${d.dataflow} ${d.sram_split}` : esc(JSON.stringify(d));
+let TASKS = [], es = null, S = null;
+
+async function getJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error(url + " " + r.status); return r.json(); }
+
+async function init() {
+  try {
+    const [ts, ms] = await Promise.all([getJSON("/tasks/default"), getJSON("/models")]);
+    TASKS = ts.tasks.slice().sort((a, b) => a.layer_name.localeCompare(b.layer_name) || a.pe_budget - b.pe_budget);
+    $("task").innerHTML = TASKS.map((t, i) => `<option value="${i}">${esc(t.layer_name)} · PE ${t.pe_budget}</option>`).join("");
+    const groups = [["free", "OpenRouter free models"], ["local", "Local (OpenAI-compatible)"], ["baseline", "Baselines"],
+      ["bedrock", ms.allow_paid ? "Bedrock (paid)" : `Bedrock (paid, short tests: max ${ms.paid_guard.max_turns} turns)`]];
+    $("model").innerHTML = groups.map(([g, label]) => {
+      const opts = ms.models.filter(m => m.group === g);
+      return opts.length ? `<optgroup label="${esc(label)}">${opts.map(m => `<option value="${esc(m.id)}">${esc(m.label)}</option>`).join("")}</optgroup>` : "";
+    }).join("");
+    $("model").value = ms.default;
+    showTask();
+  } catch (e) {
+    $("taskinfo").textContent = "No task set loaded on the server (run: sim2gym build -o tasks.jsonl). " + e.message;
+  }
+}
+
+function showTask() {
+  const t = TASKS[+$("task").value]; if (!t) return;
+  const sp = t.space, n = sp.array_h.reduce((a, h) => a + sp.array_w.filter(w => h * w <= t.pe_budget).length, 0) * sp.dataflow.length * sp.sram_split.length;
+  $("taskinfo").classList.remove("muted");
+  $("taskinfo").innerHTML = `<b>${esc(t.layer_name)}</b> <span class="k">from</span> ${esc(layerShape(t.layer))}<br>` +
+    `<span class="k">PE budget</span> ${t.pe_budget} &nbsp; <span class="k">array dims</span> ${esc(sp.array_h.join(", "))} ` +
+    `&nbsp; <span class="k">dataflow</span> ${esc(sp.dataflow.join(" / "))} &nbsp; <span class="k">SRAM</span> ${esc(sp.sram_split.join(" / "))} ` +
+    `&nbsp; <span class="k">feasible designs</span> ${n} &nbsp; <span class="k">sim budget</span> ${t.budget}`;
+}
+function layerShape(l) {
+  if (!l) return "";
+  return l.kind === "gemm" ? `GEMM ${l.m}×${l.k} · ${l.k}×${l.n}` :
+    `conv ${l.ifmap_h}×${l.ifmap_w}×${l.channels}, ${l.filter_h}×${l.filter_w} filter, ${l.filters} out, stride ${l.stride}`;
+}
+
+function addMsg(kind, who, text, extra) {
+  const c = $("chat"); if (c.querySelector(".empty")) c.innerHTML = "";
+  const d = document.createElement("div"); d.className = "msg " + kind;
+  d.innerHTML = `<div class="who"><b>${esc(who)}</b><span>${esc(extra || "")}</span></div><pre>${esc(text)}</pre>`;
+  c.appendChild(d); c.scrollTop = c.scrollHeight;
+}
+
+function pips(used, budget) {
+  $("pips").innerHTML = Array.from({length: budget}, (_, i) => `<div class="pip ${i < used ? "used" : ""}"></div>`).join("");
+  $("budgettxt").textContent = `${used} / ${budget} used`;
+}
+
+function renderSims() {
+  const ok = S.sims.filter(s => s.cycles != null), max = Math.max(1, ...ok.map(s => s.cycles));
+  const best = ok.length ? Math.min(...ok.map(s => s.cycles)) : null;
+  $("sims").innerHTML = S.sims.length ? S.sims.map((s, i) => {
+    if (s.cycles == null) return `<tr class="bad"><td>${i + 1}</td><td colspan="6">rejected: ${esc(s.error)} <span class="muted">${esc(JSON.stringify(s.design))}</span></td></tr>`;
+    const d = s.design;
+    return `<tr class="${s.cycles === best ? "best" : ""}"><td>${s.call}</td><td><b>${d.array_h} × ${d.array_w}</b></td><td>${esc(d.dataflow)}</td><td>${esc(d.sram_split)}</td>` +
+      `<td class="num">${fmt(s.cycles)}</td><td class="num">${s.utilization_pct == null ? "–" : s.utilization_pct.toFixed(1)}</td>` +
+      `<td class="barcell"><div class="bar" style="width:${(100 * s.cycles / max).toFixed(1)}%"></div></td></tr>`;
+  }).join("") : `<tr><td colspan="7" class="empty">No simulator calls yet.</td></tr>`;
+}
+
+function run() {
+  const t = TASKS[+$("task").value], model = $("model").value; if (!t) return;
+  if (es) es.close();
+  S = {sims: [], result: null, opt: null, model};
+  $("chat").innerHTML = ""; $("final").classList.remove("show"); renderSims(); pips(0, t.budget);
+  $("run").disabled = true; $("status").textContent = `running ${model}…`;
+  es = new EventSource(`/live?task_id=${encodeURIComponent(t.id)}&model=${encodeURIComponent(model)}`);
+  es.onmessage = (m) => handle(JSON.parse(m.data));
+  es.addEventListener("end", () => { es.close(); pending(false); $("run").disabled = false; if (!S.result) $("status").textContent = "ended"; });
+  es.onerror = () => { es.close(); pending(false); $("run").disabled = false; $("status").textContent = "connection closed"; };
+}
+
+let pendT = null;
+function pending(on) {
+  const old = document.getElementById("pending"); if (old) old.remove();
+  clearInterval(pendT); if (!on) return;
+  const c = $("chat"), d = document.createElement("div"), t0 = Date.now();
+  d.id = "pending"; d.className = "msg pending";
+  d.innerHTML = `<span class="dot"></span>model is thinking… <span id="pendsec">0</span> s`;
+  c.appendChild(d); c.scrollTop = c.scrollHeight;
+  pendT = setInterval(() => { const x = document.getElementById("pendsec"); if (x) x.textContent = Math.round((Date.now() - t0) / 1000); }, 1000);
+}
+
+function handle(e) {
+  pending(false);
+  if (["start", "env_simulate", "env_invalid_simulate", "env_sim_error", "env_budget_exhausted", "env_malformed"].includes(e.type) && !(S.result)) pending(true);
+  switch (e.type) {
+    case "start": pips(0, e.budget); addMsg("env", "environment", "Task prompt sent to the model (" + e.prompt.length + " chars). Max turns " + e.max_turns + ".", ""); break;
+    case "model": addMsg("model", e.has_reasoning ? "model (reasoning hidden)" : "model", e.text || "(empty reply)", e.latency_s ? e.latency_s.toFixed(1) + " s" : ""); break;
+    case "model_error": addMsg("model err", "model error", e.error + (e.detail ? "\n" + e.detail : ""), ""); break;
+    case "env_simulate": S.sims.push(e); renderSims(); pips(e.sim_calls_used, e.budget);
+      addMsg("env", "SCALE-Sim", `${dstr(e.design)} → ${fmt(e.cycles)} cycles, ${e.utilization_pct.toFixed(1)}% util`, `call ${e.call}/${e.budget}`); break;
+    case "env_invalid_simulate": case "env_sim_error": S.sims.push(e); renderSims(); addMsg("env err", "environment", "Rejected: " + e.error, "no budget used"); break;
+    case "env_budget_exhausted": addMsg("env err", "environment", "Simulation budget exhausted, final answer required.", ""); break;
+    case "env_malformed": addMsg("env err", "environment", e.retry ? "No valid protocol JSON, one retry allowed." : "Malformed again, episode over.", ""); break;
+    case "env_answer": addMsg("env", "grader", `Final answer ${dstr(e.design)} → ${e.grade.feasible ? fmt(e.grade.cycles) + " cycles" : "infeasible: " + e.grade.error}`, ""); break;
+    case "final": S.result = e.result; break;
+    case "optimum": S.opt = e; showFinal(); break;
+    case "server_error": addMsg("env err", "server error", e.error, ""); $("status").textContent = "server error"; break;
+  }
+}
+
+function showFinal() {
+  const r = S.result, o = S.opt; if (!r) return;
+  const sc = r.score, cls = sc >= 0.95 ? "good" : sc >= 0.5 ? "mid" : "bad";
+  $("cmp").innerHTML =
+    `<div class="lab">${r.baseline ? "Baseline" : "Model"} answer</div><div class="d">${r.answer ? dstr(r.answer) : "none"}</div><div class="num d">${r.answer_cycles == null ? "–" : fmt(r.answer_cycles) + " cyc"}</div>` +
+    `<div class="lab">Exhaustive optimum</div><div class="d">${dstr(o.inputs)}</div><div class="num d">${fmt(o.cycles)} cyc</div>`;
+  $("scorebig").textContent = sc.toFixed(3);
+  $("scorebig").style.color = `var(--${cls})`;
+  $("scoretxt").innerHTML = `<span class="badge ${cls}">${sc >= 0.95 ? "SOLVED" : r.feasible ? "feasible, suboptimal" : "FAILED"}</span> ` +
+    (r.baseline ? `<span class="badge base">baseline</span> ` : "") +
+    `<div class="muted" style="margin-top:6px">${r.sim_calls_used}/${r.budget} sim calls · ${r.turns} turns · ${r.latency_s.toFixed(1)} s model time${r.error ? " · " + esc(r.error) : ""}</div>`;
+  $("final").classList.add("show");
+  $("status").textContent = `done: score ${sc.toFixed(3)}`;
+}
+
+async function loadLB() {
+  try {
+    const lb = await getJSON("/leaderboard");
+    $("lbwarn").innerHTML = lb.warnings.map(w => `<div>⚠ ${esc(w)}</div>`).join("");
+    $("lb").innerHTML = lb.rows.length ? lb.rows.map(r => `<tr><td><b>${esc(r.model)}</b></td><td>${r.baseline ? '<span class="badge base">baseline</span>' : "model"}</td>` +
+      `<td class="num">${r.n}</td><td><span class="lbbar" style="width:${(120 * r.mean_score).toFixed(0)}px"></span><span class="d">${r.mean_score.toFixed(3)}</span></td>` +
+      `<td class="num">${(100 * r.solve_rate).toFixed(0)}%</td><td class="num">${(100 * r.feasible_rate).toFixed(0)}%</td>` +
+      `<td class="num">${r.mean_sim_calls.toFixed(2)}</td><td class="num">${r.mean_latency_s.toFixed(1)}</td><td class="num">${r.errors}</td></tr>`).join("")
+      : `<tr><td colspan="9" class="empty">No results yet. Run: sim2gym run tasks.jsonl --model oracle</td></tr>`;
+  } catch (e) { $("lb").innerHTML = `<tr><td colspan="9" class="empty">${esc(e.message)}</td></tr>`; }
+}
+
+function tab(which) {
+  $("tab-live").classList.toggle("on", which === "live"); $("tab-lb").classList.toggle("on", which === "lb");
+  $("view-live").classList.toggle("hidden", which !== "live"); $("view-lb").classList.toggle("hidden", which !== "lb");
+  if (which === "lb") loadLB();
+}
+$("tab-live").onclick = () => tab("live"); $("tab-lb").onclick = () => tab("lb");
+$("task").onchange = showTask; $("run").onclick = run;
+init();
+</script>
+</body>
+</html>
