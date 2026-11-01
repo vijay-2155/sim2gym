@@ -1,4 +1,4 @@
-"""sim2gym CLI: list | build | run | report | serve | models | quota."""
+"""sim2gym CLI: list | build | generate | run | report | serve | models | quota."""
 from __future__ import annotations
 
 import argparse
@@ -54,6 +54,19 @@ def cmd_run(args) -> int:
     if summary.get("rate_limited"):
         print("WARNING: rate limited; stopped early. Re-run later to resume.", file=sys.stderr)
     print(json.dumps(summary, indent=2))
+    return 0
+
+
+def cmd_generate(args) -> int:
+    from sim2gym import generate, tasks as tasks_mod
+    from sim2gym.baselines import expected_probe
+    from sim2gym.runner import task_set_hash
+    pe = [int(x) for x in args.pe_budgets.split(",")] if args.pe_budgets else None
+    tasks = generate.generate_tasks(args.seed, args.n, budget=args.budget, pe_budgets=pe, workers=args.workers)
+    tasks_mod.save_tasks(args.output, tasks)
+    probe = sum(expected_probe(t, min(6, t["budget"]))["mean_score"] for t in tasks) / len(tasks)
+    print(f"wrote {len(tasks)} tasks ({args.n} generated layers, seed {args.seed}) to {args.output} "
+          f"(task_set_hash {task_set_hash(tasks)}); 6-probe exact expectation {probe:.3f}")
     return 0
 
 
@@ -116,6 +129,15 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--pe-budgets", help="comma-separated PE budgets (default all)")
     s.add_argument("-o", "--output", default="tasks.jsonl")
     s.set_defaults(fn=cmd_build)
+
+    s = sub.add_parser("generate", help="sample new layer shapes and build tasks with exhaustive optima")
+    s.add_argument("--seed", type=int, default=1)
+    s.add_argument("--n", type=int, default=12, help="number of generated layers")
+    s.add_argument("--budget", type=int, default=6)
+    s.add_argument("--pe-budgets", help="comma-separated PE budgets (default all)")
+    s.add_argument("--workers", type=int, default=4, help="parallel SCALE-Sim processes")
+    s.add_argument("-o", "--output", default="tasks_gen.jsonl")
+    s.set_defaults(fn=cmd_generate)
 
     s = sub.add_parser("run", help="run a model or baseline over tasks")
     s.add_argument("tasks")
