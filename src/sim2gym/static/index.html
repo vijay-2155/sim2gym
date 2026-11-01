@@ -51,10 +51,7 @@ select { background: var(--panel2); color: var(--text); border: 1px solid var(--
 .msg pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 14.5px/1.45 var(--mono); }
 .msg.err { border-color: var(--bad); }
 .msg.pending { border-style: dashed; color: var(--muted); }
-.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--model); margin-right: 8px;
-  animation: pulse 1.2s ease-in-out infinite; }
-@keyframes pulse { 50% { opacity: 0.25; } }
-@media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--model); margin-right: 8px; }
 .meter { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 16px; }
 .pips { display: flex; gap: 6px; }
 .pip { width: 26px; height: 14px; border-radius: 4px; border: 1px solid var(--line); background: var(--panel2); }
