@@ -142,5 +142,6 @@ def to_markdown(lb: dict) -> str:
 
 def write_report(results_dir, out_path, task_set_hash: str | None = None, tasks: list[dict] | None = None) -> dict:
     lb = build_leaderboard(results_dir, task_set_hash, tasks)
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     Path(out_path).write_text(to_markdown(lb))
     return lb

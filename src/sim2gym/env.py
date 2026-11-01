@@ -3,7 +3,7 @@
 Shared by evaluation (runner), baselines, the HTTP sessions and the live demo, so every
 path scores answers the same way.
 
-Turn / budget rules (PROJECT_CONTEXT 4.3-4.4, BUILD_PLAN step 3):
+Turn / budget rules:
 - Every ``step`` call is one turn. ``max_turns = budget + 2``. Hitting max turns without an
   answer ends the episode with score 0.
 - ``{"simulate": design}`` with a *valid* design runs the real simulator and uses one budget unit.

@@ -7,6 +7,8 @@
   ``SIM2GYM_BEDROCK_REGION`` (default us-east-1) with the local AWS CLI credential chain.
 - ``openai:<model>``: any OpenAI-compatible server, ``SIM2GYM_BASE_URL`` (default Ollama
   http://localhost:11434/v1) and ``SIM2GYM_API_KEY``.
+- ``kiro:<model>`` (uses Kiro credits): the logged-in Kiro CLI, ``kiro-cli chat --no-interactive``, no tools.
+- ``codex:<model>`` (uses the ChatGPT plan): the logged-in Codex CLI, ``codex exec``, tools disabled.
 
 Keys and endpoints come only from the server-side environment, never from HTTP clients, and are never
 logged, returned or saved (``settings()`` omits them).
@@ -376,10 +378,116 @@ def openrouter_quota() -> dict:
     return {k: data[k] for k in QUOTA_FIELDS if k in data}
 
 
+_ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
+CLI_TIMEOUT_S = 300.0
+
+
+def render_transcript(messages: list[dict]) -> str:
+    """One prompt for a stateless CLI. The first turn is the task prompt unchanged; later turns replay the
+    conversation so far and ask only for the next assistant message."""
+    system = "\n\n".join(m["content"] for m in messages if m["role"] == "system")
+    conv = [m for m in messages if m["role"] in ("user", "assistant")]
+    head = f"{system}\n\n" if system else ""
+    if len(conv) == 1:
+        return head + conv[0]["content"]
+    turns = "\n\n".join(f"[{m['role'].upper()}]\n{m['content']}" for m in conv)
+    return (head + "This is a multi-turn exchange. The conversation so far:\n\n" + turns +
+            "\n\nWrite only your next [ASSISTANT] message, following the protocol above. Do not repeat the label.")
+
+
+class _CLIModel:
+    """A model behind an agent CLI, run once per turn: a fresh, stateless process in an empty temporary
+    directory with every tool disabled, so the model cannot read files (``tasks.jsonl`` holds the optima).
+    The CLI adds its own agent system prompt, so results carry the CLI's prefix and are not identical to a raw
+    API run. Uses the CLI's logged-in account."""
+    kind = prefix = "cli"
+    bin_env, default_bin, harness = "", "", ""
+
+    def __init__(self, model: str, timeout_s: float | None = None, retries: int = 2, binary: str | None = None,
+                 max_tokens: int | None = None, temperature: float = 0.0):  # max_tokens/temperature: not settable
+        self.model = model
+        self.timeout_s = float(timeout_s or CLI_TIMEOUT_S)
+        self.retries = int(retries)
+        self.binary = binary or os.environ.get(self.bin_env, self.default_bin)
+
+    @property
+    def name(self) -> str:
+        return f"{self.prefix}:{self.model}"
+
+    def settings(self) -> dict:
+        return {"provider": self.kind, "model": self.model, "timeout_s": self.timeout_s, "harness": self.harness}
+
+    def command(self, prompt: str, cwd: str) -> list[str]:
+        raise NotImplementedError
+
+    def reply(self, proc, cwd: str) -> str:
+        return proc.stdout
+
+    def chat(self, messages: list[dict]) -> ChatResult:
+        import subprocess
+        import tempfile
+        prompt = render_transcript(messages)
+        env = dict(os.environ, NO_COLOR="1")
+        t0 = time.monotonic()
+        last_err = "empty reply"
+        for attempt in range(self.retries + 1):
+            try:
+                with tempfile.TemporaryDirectory(prefix=f"sim2gym-{self.kind}-") as cwd:
+                    proc = subprocess.run(self.command(prompt, cwd), cwd=cwd, env=env, capture_output=True,
+                                          text=True, timeout=self.timeout_s, stdin=subprocess.DEVNULL)
+                    text = _ANSI_RE.sub("", self.reply(proc, cwd)).strip()
+                if proc.returncode == 0 and text:
+                    text, think = split_think(text)
+                    return ChatResult(text=text, latency_s=time.monotonic() - t0, reasoning=think)
+                last_err = f"exit {proc.returncode}: {_ANSI_RE.sub('', proc.stderr).strip()[-300:] or 'empty reply'}"
+            except FileNotFoundError:
+                return ChatResult("", time.monotonic() - t0, error=f"{self.kind} error: {self.binary} not found")
+            except subprocess.TimeoutExpired:
+                last_err = f"timeout after {self.timeout_s:.0f}s"
+            if attempt < self.retries:
+                time.sleep(min(30.0, 2.0 ** attempt + random.random()))
+        return ChatResult("", time.monotonic() - t0, error=f"{self.kind} error: {last_err}"[:500])
+
+
+class KiroModel(_CLIModel):
+    """``kiro:<model>`` (e.g. claude-opus-5.5): ``kiro-cli chat --no-interactive`` with no trusted tools."""
+    kind = prefix = "kiro"
+    bin_env, default_bin = "SIM2GYM_KIRO_BIN", "kiro-cli"
+    harness = "kiro-cli chat --no-interactive, tools untrusted, empty cwd, stateless transcript"
+
+    def command(self, prompt, cwd):
+        return [self.binary, "chat", "--no-interactive", "--model", self.model, "--trust-tools=", prompt]
+
+
+CODEX_DISABLED_FEATURES = ("shell_tool", "unified_exec", "browser_use", "computer_use", "apps", "in_app_browser")
+
+
+class CodexModel(_CLIModel):
+    """``codex:<model>`` (e.g. gpt-6.1-sol): ``codex exec`` with shell, browser and app tools disabled,
+    a read-only sandbox, no user config/rules, and no saved session; the reply is Codex's last message."""
+    kind = prefix = "codex"
+    bin_env, default_bin = "SIM2GYM_CODEX_BIN", "codex"
+    harness = ("codex exec --ephemeral --ignore-user-config, read-only sandbox, tools disabled "
+               f"({', '.join(CODEX_DISABLED_FEATURES)}), empty cwd, stateless transcript, default reasoning effort")
+
+    def command(self, prompt, cwd):
+        cmd = [self.binary, "exec", "--ephemeral", "--skip-git-repo-check", "--ignore-user-config", "--ignore-rules",
+               "-s", "read-only", "--color", "never", "-m", self.model, "-C", cwd,
+               "-o", os.path.join(cwd, "last_message.txt")]
+        for feature in CODEX_DISABLED_FEATURES:
+            cmd += ["--disable", feature]
+        return cmd + ["--", prompt]
+
+    def reply(self, proc, cwd):
+        path = os.path.join(cwd, "last_message.txt")
+        return open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+
+
 def get_model(spec: str, **settings):
-    """``openrouter:<id>``, ``bedrock:<modelId>`` or ``openai:<model>``. Other prefixes are rejected."""
-    for prefix, cls in (("openrouter:", OpenRouterModel), ("bedrock:", BedrockModel), ("openai:", OpenAICompatModel)):
+    """``openrouter:<id>``, ``bedrock:<modelId>``, ``openai:<model>``, ``kiro:<model>`` or ``codex:<model>``."""
+    for prefix, cls in (("openrouter:", OpenRouterModel), ("bedrock:", BedrockModel), ("openai:", OpenAICompatModel),
+                        ("kiro:", KiroModel), ("codex:", CodexModel)):
         if spec.startswith(prefix) and len(spec) > len(prefix):
             return cls(spec[len(prefix):], **settings)
-    raise ValueError(f"unknown model spec {spec!r}; use openrouter:<id>, bedrock:<modelId>, openai:<model> "
-                     "or a baseline name")
+    raise ValueError(f"unknown model spec {spec!r}; use openrouter:<id>, bedrock:<modelId>, openai:<model>, "
+                     "kiro:<model>, codex:<model> or a baseline name")

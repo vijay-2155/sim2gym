@@ -24,7 +24,7 @@ REASONING_KEEP_CHARS = 4000  # reasoning is recorded (truncated) for inspection,
 
 # Paid-model guard: Bedrock costs money, so by default a run is a tiny smoke test written to results/smoke/
 # (not the leaderboard) unless allow_paid=True (CLI --allow-paid, API env SIM2GYM_ALLOW_PAID=1).
-PAID_PREFIXES = ("bedrock:",)
+PAID_PREFIXES = ("bedrock:", "kiro:", "codex:")
 PAID_GUARD_MAX_TASKS = 2
 PAID_GUARD_MAX_TURNS = 2
 
@@ -34,7 +34,7 @@ def is_paid(model: str) -> bool:
 
 
 def default_workers(model: str) -> int:
-    return 4 if model.startswith("bedrock:") else 1  # openrouter free tier / local Ollama: 1
+    return 4 if model.startswith(("bedrock:", "kiro:", "codex:")) else 1  # openrouter free tier / local Ollama: 1
 
 
 def safe_name(model: str) -> str:

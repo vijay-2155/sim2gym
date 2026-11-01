@@ -20,6 +20,12 @@ FRIENDLY = {
     "bedrock:openai.gpt-oss-120b-1:0": ("gpt-oss 120B", 120),
     "bedrock:deepseek.v3.2": ("DeepSeek V3.2", 671),
     "bedrock:mistral.mistral-large-3-675b-instruct": ("Mistral Large 3", 675),
+    # sizes below are not published, so they stay out of the size comparison
+    "openai:gemma4:e4b": ("Gemma 4 E4B (local)", None),
+    "kiro:claude-opus-5.5": ("Claude Opus 5.5 (via Kiro)", None),
+    "codex:gpt-6.1-sol": ("GPT-6.1 Sol (via Codex)", None),
+    "codex:gpt-6.1-terra": ("GPT-6.1 Terra (via Codex)", None),
+    "codex:gpt-6-luna": ("GPT-6 Luna (via Codex)", None),
 }
 BASELINE_NAMES = {
     "oracle": "Best possible (every design tried)",
@@ -76,6 +82,14 @@ HOW_IT_WORKS = [
 ]
 
 
+def _paired_ci(diffs: list[float]) -> tuple[float, float]:
+    """95% CI of the mean per-task difference (normal approximation, +/-1.96 standard errors)."""
+    n = len(diffs)
+    mean = sum(diffs) / n
+    se = (sum((d - mean) ** 2 for d in diffs) / (n - 1) / n) ** 0.5 if n > 1 else 0.0
+    return mean - 1.96 * se, mean + 1.96 * se
+
+
 def build_insights(tasks: list[dict], results_dir) -> dict:
     n_tasks = len(tasks)
     if not n_tasks or not Path(results_dir).exists():
@@ -89,9 +103,12 @@ def build_insights(tasks: list[dict], results_dir) -> dict:
         groups[r["model"]].append(r)
     groups = {m: rs for m, rs in groups.items() if len(rs) == n_tasks}  # complete runs only: fair comparison
 
+    from .baselines import expected_probe
+    probe_by_task = {t["id"]: expected_probe(t, min(6, t["budget"]))["mean_score"] for t in tasks}
     table = []
     for m, rs in groups.items():
         n = len(rs)
+        lo, hi = _paired_ci([r.get("score", 0.0) - probe_by_task[r["task_id"]] for r in rs])
         larger = sum(1 for r in rs if r.get("feasible") and _area(r.get("answer")) > _area(by_id[r["task_id"]]["optimum"]["inputs"]))
         table.append({
             "id": m, "label": _label(m), "baseline": any(r.get("baseline") for r in rs), "n": n,
@@ -102,13 +119,15 @@ def build_insights(tasks: list[dict], results_dir) -> dict:
             "oversize_rate": larger / n,
             "no_sim_rate": sum(1 for r in rs if not r.get("sim_calls_used")) / n,
             "params_b": FRIENDLY.get(m, (None, None))[1],
+            "vs_probe_ci95": [lo, hi], "beats_probe": lo > 0,
         })
     table = [x for x in table if x["id"] not in SEEDED]
     for e in report.expected_baseline_rows(tasks, h):
         table.append({"id": e["model"], "label": _label(e["model"]), "baseline": True, "exact": True, "n": e["n"],
                       "mean_score": e["mean_score"], "solve_rate": e["solve_rate"],
                       "feasible_rate": e["feasible_rate"], "mean_sim_calls": e["mean_sim_calls"],
-                      "oversize_rate": None, "no_sim_rate": None, "params_b": None})
+                      "oversize_rate": None, "no_sim_rate": None, "params_b": None,
+                      "vs_probe_ci95": None, "beats_probe": False})
     table.sort(key=lambda x: -x["mean_score"])
     models = [x for x in table if not x["baseline"]]
     base = {x["id"]: x for x in table if x["baseline"]}
@@ -118,7 +137,7 @@ def build_insights(tasks: list[dict], results_dir) -> dict:
     best = models[0]
     probe = base[PROBE]["mean_score"]
     rand = base[RANDOM]["mean_score"]
-    beat = [x for x in models if x["mean_score"] > probe]
+    beat = [x for x in models if x["beats_probe"]]  # paired 95% CI above random search, as in the README
     headline = {"best_model": best["label"], "best_score": best["mean_score"], "probe_score": probe,
                 "random_score": rand, "oracle_score": base.get("oracle", {}).get("mean_score", 1.0),
                 "beat_probe": len(beat), "best_vs_probe_pct": (best["mean_score"] / probe - 1) * 100 if probe else None,
@@ -137,8 +156,8 @@ def build_insights(tasks: list[dict], results_dir) -> dict:
             "body": f"{worst_lazy['label']} skipped testing on {worst_lazy['no_sim_rate']:.0%} of tasks and "
                     f"answered from memory. It scored {worst_lazy['mean_score']:.0%}, below six random tries "
                     f"({probe:.0%}). The {len(exp)} AIs that ran about 5 tests per task averaged {exp_avg:.0%}, but "
-                    + (f"all {len(exp)} beat random search." if all(x["mean_score"] > probe for x in exp) else
-                       f"only {sum(1 for x in exp if x['mean_score'] > probe)} of them beat random search: testing "
+                    + (f"all {len(exp)} clearly beat random search." if all(x["beats_probe"] for x in exp) else
+                       f"only {sum(1 for x in exp if x['beats_probe'])} of them clearly beat random search: testing "
                        f"is necessary, but the AI also has to learn from the results."),
             "takeaway": "When an AI assistant has engineering tools, require it to test before it answers, and check "
                         "that it actually did."})

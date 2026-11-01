@@ -1,4 +1,4 @@
-"""sim2gym CLI: list | build | generate | run | report | serve | models | quota."""
+"""sim2gym CLI: list | build | generate | run | report | site | serve | models | quota."""
 from __future__ import annotations
 
 import argparse
@@ -67,6 +67,15 @@ def cmd_generate(args) -> int:
     probe = sum(expected_probe(t, min(6, t["budget"]))["mean_score"] for t in tasks) / len(tasks)
     print(f"wrote {len(tasks)} tasks ({args.n} generated layers, seed {args.seed}) to {args.output} "
           f"(task_set_hash {task_set_hash(tasks)}); 6-probe exact expectation {probe:.3f}")
+    return 0
+
+
+def cmd_site(args) -> int:
+    import time
+    from pathlib import Path
+    from sim2gym.site import build_site
+    stamp = args.stamp or time.strftime("%d %b %Y")
+    print(json.dumps(build_site(Path(args.output), Path(args.tasks), Path(args.results), stamp), indent=2))
     return 0
 
 
@@ -139,10 +148,17 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("-o", "--output", default="tasks_gen.jsonl")
     s.set_defaults(fn=cmd_generate)
 
+    s = sub.add_parser("site", help="static results site (Insights + Leaderboard as baked JSON, no server)")
+    s.add_argument("--tasks", default="tasks.jsonl")
+    s.add_argument("--results", default="results")
+    s.add_argument("--stamp", help="date shown on the page (default today)")
+    s.add_argument("-o", "--output", default="site")
+    s.set_defaults(fn=cmd_site)
+
     s = sub.add_parser("run", help="run a model or baseline over tasks")
     s.add_argument("tasks")
     s.add_argument("--model", required=True,
-                   help="oracle | random | max-square-ws | 6-probe | openrouter:<id> | bedrock:<modelId> | openai:<model>")
+                   help="oracle | random | max-square-ws | 6-probe | kiro:<model> | codex:<model> | openrouter:<id> | bedrock:<modelId> | openai:<model>")
     s.add_argument("--workers", type=int, default=None, help="threads (default 4 for bedrock, else 1)")
     s.add_argument("--budget", type=int, default=None, help="override simulator-call budget (default: task's)")
     s.add_argument("--limit", type=int, default=None)
@@ -165,7 +181,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("report", help="write leaderboard markdown")
     s.add_argument("results_dir", nargs="?", default="results")
-    s.add_argument("-o", "--output", default="leaderboard.md")
+    s.add_argument("-o", "--output", default="leaderboards/fixed.md")
     s.add_argument("--tasks", default=None, help="only include results for this tasks file's task set")
     s.set_defaults(fn=cmd_report)
 

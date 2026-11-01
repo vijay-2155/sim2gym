@@ -35,8 +35,13 @@ def test_insights_numbers_match_leaderboard():
     assert {r["id"] for r in d["rows"]}.isdisjoint({"6-probe", "random"})
     assert d["headline"]["probe_score"] == pytest.approx(lb["6-probe (exact expectation)"]["mean_score"])
     assert d["headline"]["random_score"] == pytest.approx(lb["random (exact expectation)"]["mean_score"])
-    assert d["headline"]["beat_probe"] == sum(1 for r in d["rows"] if not r["baseline"]
-                                              and r["mean_score"] > d["headline"]["probe_score"])
+    # "Beats random search" = paired 95% CI of per-task (score - exact 6-probe expectation) above zero.
+    models = [r for r in d["rows"] if not r["baseline"]]
+    assert d["headline"]["beat_probe"] == sum(1 for r in models if r["beats_probe"])
+    for r in models:
+        lo, hi = r["vs_probe_ci95"]
+        assert lo <= r["mean_score"] - d["headline"]["probe_score"] <= hi
+        assert r["beats_probe"] == (lo > 0)
     assert {f["id"] for f in d["findings"]} >= {"oversize", "headroom"}
     ex = d["example"]
     assert ex is None or (ex["answer"]["cycles"] >= ex["optimum"]["cycles"] and len(ex["steps"]) >= 4)
