@@ -1,0 +1,2 @@
+# accel.py is hashed into SIM_VERSION and every cache key; CRLF checkouts would miss the whole cache.
+src/sim2gym/packs/accel.py text eol=lf

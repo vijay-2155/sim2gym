@@ -39,7 +39,7 @@ cp .env.example .env                 # put OPENROUTER_API_KEY=... in .env (gitig
 .venv/bin/sim2gym run tasks_eval.jsonl --model openrouter:nvidia/nemotron-3.5-super-vl:free --results results_eval
 .venv/bin/sim2gym report results_eval --tasks tasks_eval.jsonl -o leaderboard_eval.md
 .venv/bin/sim2gym serve                              # live demo at http://127.0.0.1:8765/  (API docs: /docs)
-.venv/bin/python -m pytest -q                        # 125 tests
+.venv/bin/python -m pytest -q                        # 128 tests
 ```
 
 The first `build` runs SCALE-Sim over the whole grid: 576 simulations, about 3.5 minutes with 6 workers. After that
@@ -92,28 +92,35 @@ one scoring path.
 All 36 tasks (`tasks.jsonl`, task set `903fb5045d2d4d26`), on Amazon Bedrock open-weight models at temperature 0.
 Every number below comes from `results/*.jsonl` (see [`leaderboard.md`](leaderboard.md)).
 
-| Model | Type | n | Mean score | Solved (≥0.95) | Feasible | Mean sim calls | Mean latency (s) |
-|---|---|---:|---:|---:|---:|---:|---:|
-| oracle (exhaustive optimum) | baseline | 36 | 1.000 | 100% | 100% | 0.00 | – |
-| **Nemotron Super 3 120B** (`nvidia.nemotron-super-3-120b`) | model | 36 | **0.838** | 56% | 100% | 5.00 | 5.3 |
-| **Qwen3 32B** (`qwen.qwen3-32b-v1:0`) | model | 36 | **0.804** | 53% | 100% | 5.06 | 7.4 |
-| Gemma 3 27B (`google.gemma-3-27b-it`) | model | 36 | 0.709 | 36% | 100% | 4.97 | 34.0 |
-| gpt-oss 120B (`openai.gpt-oss-120b-1:0`) | model | 36 | 0.706 | 36% | 100% | 3.11 | 11.2 |
-| DeepSeek V3.2 (`deepseek.v3.2`) | model | 36 | 0.704 | 36% | 100% | 5.11 | 68.9 |
-| **6-probe** (6 random simulator calls, keep the best) | baseline | 36 | 0.650 | 28% | 100% | 6.00 | – |
-| Mistral Large 3 675B (`mistral.mistral-large-3-675b-instruct`) | model | 36 | 0.590 | 22% | 94% | 0.42 | 5.4 |
-| max-square-ws (largest square array, ws dataflow) | baseline | 36 | 0.521 | 8% | 100% | 0.00 | – |
-| random feasible design | baseline | 36 | 0.380 | 8% | 100% | 0.00 | – |
+| Model | Type | n | Mean score | 95% CI | Solved (≥0.95) | Feasible | Mean sim calls | Mean latency (s) |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| oracle (exhaustive optimum) | baseline | 36 | 1.000 | – | 100% | 100% | 0.00 | – |
+| **Nemotron Super 3 120B** (`nvidia.nemotron-super-3-120b`) | model | 36 | **0.838** | ±0.071 | 56% | 100% | 5.00 | 5.3 |
+| **Qwen3 32B** (`qwen.qwen3-32b-v1:0`) | model | 36 | **0.804** | ±0.084 | 53% | 100% | 5.06 | 7.4 |
+| Gemma 3 27B (`google.gemma-3-27b-it`) | model | 36 | 0.709 | ±0.094 | 36% | 100% | 4.97 | 34.0 |
+| gpt-oss 120B (`openai.gpt-oss-120b-1:0`) | model | 36 | 0.706 | ±0.085 | 36% | 100% | 3.11 | 11.2 |
+| DeepSeek V3.2 (`deepseek.v3.2`) | model | 36 | 0.704 | ±0.091 | 36% | 100% | 5.11 | 68.9 |
+| **6-probe, exact expectation** (6 random simulator calls, keep the best; mean over every possible draw) | baseline | 36 | **0.723** | exact | 31% | 100% | 6.00 | – |
+| Mistral Large 3 675B (`mistral.mistral-large-3-675b-instruct`) | model | 36 | 0.590 | ±0.102 | 22% | 94% | 0.42 | 5.4 |
+| max-square-ws (largest square array, ws dataflow) | baseline | 36 | 0.521 | ±0.086 | 8% | 100% | 0.00 | – |
+| random feasible design, exact expectation | baseline | 36 | 0.399 | exact | 6% | 100% | 0.00 | – |
 
-All six models ran on the same 36 tasks with the same settings.
+All six models ran on the same 36 tasks with the same settings. The 6-probe and random rows are exact expectations
+over every possible random draw, computed from the cached SCALE-Sim grid. The single seeded draws in
+`results/` scored 0.650 (6-probe) and 0.380 (random); one draw is luck, so we compare against the expectation.
+95% CI is ±1.96 standard errors over the 36 tasks (one run per task): models closer than about 0.1 are not
+reliably ranked.
 
 ### What the results show
 
-- **Experimenting beats size.** Every model that used the simulator budget (about 5 calls per task) beat the
-  6-probe baseline. Mistral Large 3 answered **33 of 36 tasks without a single simulator call** and scored below
-  6-probe. 2 of its answers used array sizes that are not allowed, so they score 0. gpt-oss 120B used about 3 calls
-  and landed in between.
-- **A "bigger array is better" bias.** In 12–17 of the 36 tasks, each model's final array was larger than the
+- **Only 2 of 6 models beat blind random search.** With the same 6 simulator calls, random search scores 0.723 on
+  average. Per task (paired, 95% CI), **Nemotron Super 3** is +0.115 above it [+0.040, +0.190] and **Qwen3 32B** is
+  +0.080 [+0.003, +0.158], only just clear. Gemma 3, gpt-oss and DeepSeek are within ±0.02 of it: no
+  measurable difference.
+- **Skipping experiments costs the most.** Mistral Large 3 answered **33 of 36 tasks without a single simulator
+  call** and scored 0.133 below random search [−0.233, −0.033]. 2 of its answers used array sizes that are not
+  allowed, so they score 0. gpt-oss 120B used about 3 calls.
+- **A "bigger array is better" bias.** In 10–17 of the 36 tasks, each model's final array was larger than the
   optimal one.
 
 ### A real failure (from `results/bedrock_qwen.qwen3-32b-v1_0.jsonl`)

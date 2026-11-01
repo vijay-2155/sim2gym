@@ -18,7 +18,8 @@ def test_build_run_report(tmp_path, capsys):
     capsys.readouterr()
     assert cli.main(["report", str(res), "-o", str(lb), "--tasks", str(tp)]) == 0
     md = lb.read_text()
-    assert "| oracle | baseline | 1 | 1.000 | 100% | 100% |" in md and "6-probe" in md and "random" in md
+    assert "| oracle | baseline | 1 | 1.000 | - | 100% | 100% |" in md and "6-probe" in md and "random" in md
+    assert "| 6-probe (exact expectation) | baseline | 1 |" in md
     assert "WARNING" not in md
 
 
