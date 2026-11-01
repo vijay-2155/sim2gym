@@ -11,15 +11,22 @@ from sim2gym.protocol import render_prompt
 
 def build_tasks(seed: int = 0, budget: int = 6, workloads: list[str] | None = None,
                 pe_budgets: list[int] | None = None) -> list[dict]:
+    names = sorted(accel.WORKLOADS if workloads is None else workloads)
+    return build_tasks_for_layers([accel.WORKLOADS[name] for name in names], seed=seed, budget=budget,
+                                  pe_budgets=pe_budgets)
+
+
+def build_tasks_for_layers(layers: list[dict], seed: int = 0, budget: int = 6,
+                           pe_budgets: list[int] | None = None) -> list[dict]:
+    """One design task per (layer x PE budget), each with an exhaustive SCALE-Sim optimum."""
     if type(budget) is not int or budget < 0:
         raise ValueError("Simulator call budget must be a nonnegative integer")
-    names = sorted(accel.WORKLOADS if workloads is None else workloads)
     budgets = sorted(accel.PE_BUDGETS if pe_budgets is None else pe_budgets)
     if any(type(pe) is not int or pe not in accel.PE_BUDGETS for pe in budgets):
         raise ValueError("Unknown PE budget")
     tasks = []
-    for name in names:
-        layer = accel.WORKLOADS[name]
+    for layer in layers:
+        name = layer["name"]
         results = [(design, accel.simulate(layer, **design)["cycles"])
                    for design in accel.feasible_designs(max(budgets))] if budgets else []
         for pe in budgets:
