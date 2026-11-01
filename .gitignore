@@ -14,3 +14,8 @@ results/logs/
 results_eval/logs/
 results_eval/live/
 results_eval_log.txt
+site/
+results_gen/logs/
+results_gen/partial/
+# internal planning notes (kept locally, not part of the repo)
+notes/
