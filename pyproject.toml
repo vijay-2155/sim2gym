@@ -13,6 +13,7 @@ dependencies = ["numpy", "scalesim==3.0.0", "openai>=1.0", "boto3", "fastapi", "
 
 [project.optional-dependencies]
 dev = ["pytest", "httpx"]
+vf = ["verifiers>=0.4"]  # sim2gym_vf adapter; verifiers v1 needs Linux or macOS (it imports fcntl)
 
 [project.scripts]
 sim2gym = "sim2gym.cli:main"

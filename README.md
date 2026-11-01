@@ -33,13 +33,14 @@ cp .env.example .env                 # put OPENROUTER_API_KEY=... in .env (gitig
 
 .venv/bin/sim2gym list                               # simulator, workloads, design space
 .venv/bin/sim2gym build --seed 0 -o tasks.jsonl      # 36 design tasks with exact optima (fills cache/)
+.venv/bin/sim2gym generate --seed 1 --n 12 -o tasks_gen_s1.jsonl  # 12 NEW sampled layers -> 36 more tasks
 .venv/bin/sim2gym run tasks.jsonl --model oracle     # sanity check: must score 1.000
 .venv/bin/sim2gym run tasks.jsonl --model 6-probe    # the baseline a model must beat
 .venv/bin/sim2gym models --free                      # live list of free OpenRouter models
 .venv/bin/sim2gym run tasks_eval.jsonl --model openrouter:nvidia/nemotron-3.5-super-vl:free --results results_eval
 .venv/bin/sim2gym report results_eval --tasks tasks_eval.jsonl -o leaderboard_eval.md
 .venv/bin/sim2gym serve                              # live demo at http://127.0.0.1:8765/  (API docs: /docs)
-.venv/bin/python -m pytest -q                        # 131 tests
+.venv/bin/python -m pytest -q                        # 147 tests (140 + 7 verifiers tests on Linux/macOS)
 ```
 
 The first `build` runs SCALE-Sim over the whole grid: 576 simulations, about 3.5 minutes with 6 workers. After that
@@ -86,8 +87,49 @@ obs, reward, done, info = env.step('{"simulate": {"array_h": 16, "array_w": 64, 
 # reward stays 0 until the episode ends, then equals the task score in [0, 1]
 ```
 
-The evaluation runner, the baselines and the live demo all drive this same `Sim2GymEnv`, so evaluation and RL share
-one scoring path.
+The evaluation runner, the baselines, the live demo and the `verifiers` adapter all drive this same `Sim2GymEnv`,
+so evaluation and RL share one scoring path.
+
+### Unlimited tasks: the generator
+
+The 12 fixed layers are a benchmark; a training gym needs fresh tasks that no model has seen. `sim2gym generate`
+samples new layers from a seed and builds tasks with the same exhaustive SCALE-Sim optimum:
+
+- **GEMMs** like transformer projections, from single-token decode to short prefill: M ∈ {1 … 256}, K and N ∈
+  {64 … 768}, including non-powers of two (96, 192, 384, 768).
+- **Convolutions** on 7/14/28-pixel inputs, 1×1 or 3×3 filters, stride 1 or 2, 16–512 channels.
+- Capped at the size of the largest fixed layer (8M multiply-adds), so SCALE-Sim stays fast. Never repeats a fixed
+  layer, and never repeats a shape within a set. The same seed always gives the same tasks.
+
+`tasks_gen_s1.jsonl` (seed 1) is checked in with its SCALE-Sim cache: 12 new layers, 36 tasks, 576 simulations,
+about 10 minutes with 4 workers on a laptop. In 23 of its 36 tasks the best array is non-square. Random search with
+6 probes scores 0.789 on it (exact expectation), against 0.723 on the fixed set, so this seed is slightly easier.
+
+### `verifiers` (Prime Intellect) environment
+
+`src/sim2gym_vf` exposes AccelGym as a [verifiers](https://github.com/PrimeIntellect-ai/verifiers) v1 environment
+(id `sim2gym-vf`), so existing open-source RL trainers and the Environments Hub can use it. The episode is the same
+`Sim2GymEnv`: the task prompt opens the chat, each model reply is stepped through the env, the observation comes back
+as the next user turn, and the final score is the reward (`sim2gym_score`, plus `solved`, `feasible` and
+`sim_calls_used` metrics).
+
+```bash
+uv pip install -p .venv/bin/python -e '.[dev,vf]'    # verifiers v1 needs Linux or macOS (it imports fcntl)
+.venv/bin/vf-eval sim2gym-vf -m <model> --client.base-url <openai-compatible-url> --client.api-key-var <ENV_VAR>     --env.taskset.path tasks.jsonl --env.player.runtime.type subprocess --no-push -n 36
+.venv/bin/vf-eval sim2gym-vf ... --env.taskset.generate-seed 7 --env.taskset.generate-n 12   # fresh tasks
+```
+
+`--no-push` keeps results local (vf-eval uploads to Prime Intellect by default). `--env.player.runtime.type
+subprocess` runs locally instead of in a Prime sandbox. Checked end to end on Linux (WSL Ubuntu 24.04, verifiers
+0.4.0) with a scripted OpenAI-compatible server: the rewards vf-eval recorded equal `grade_design` exactly.
+
+### Accuracy checks
+
+- All 576 cached SCALE-Sim results for the fixed tasks were re-simulated from scratch: 0 differences.
+- The stored optimum is the minimum over every feasible design for every task, fixed and generated.
+- The oracle scores exactly 1.000 on all 36 tasks; no result anywhere scores above 1.0.
+- Every leaderboard number was recomputed independently from `results/*.jsonl`.
+- Random baselines are reported as exact expectations over every possible draw, not one seeded draw.
 
 ## Results
 
@@ -206,7 +248,8 @@ is no auth, sessions live in memory (lost on restart), and it needs a single wor
 - Prior work: LUMINA (Mar 2026) and PerfReasoning (Sep 2026) already test LLMs on hardware trade-offs. sim2gym's
   contribution is a **generator of black-box, budgeted environments from real simulators**, not "the first
   chip-reasoning benchmark".
-- Next steps: a `verifiers` / Environments Hub adapter, ngspice + SKY130 inverter sizing, and RL training.
+- Generated tasks are not yet evaluated on models; the leaderboard is the fixed 36-task set.
+- Next steps: publish `sim2gym-vf` on the Environments Hub, ngspice + SKY130 inverter sizing, and RL training.
 
 ## License
 
