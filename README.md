@@ -56,6 +56,9 @@ The page streams the episode over Server-Sent Events:
 
 The **Leaderboard** tab reads `results/`.
 
+![Live episode](docs/screenshots/live-episode.png)
+![Leaderboard](docs/screenshots/leaderboard.png)
+
 ## The environment
 
 | | |
@@ -94,19 +97,19 @@ Every number below comes from `results/*.jsonl` (see [`leaderboard.md`](leaderbo
 | oracle (exhaustive optimum) | baseline | 36 | 1.000 | 100% | 100% | 0.00 | – |
 | **Nemotron Super 3 120B** (`nvidia.nemotron-super-3-120b`) | model | 36 | **0.838** | 56% | 100% | 5.00 | 5.3 |
 | **Qwen3 32B** (`qwen.qwen3-32b-v1:0`) | model | 36 | **0.804** | 53% | 100% | 5.06 | 7.4 |
+| Gemma 3 27B (`google.gemma-3-27b-it`) | model | 36 | 0.709 | 36% | 100% | 4.97 | 34.0 |
 | gpt-oss 120B (`openai.gpt-oss-120b-1:0`) | model | 36 | 0.706 | 36% | 100% | 3.11 | 11.2 |
 | **6-probe** (6 random simulator calls, keep the best) | baseline | 36 | 0.650 | 28% | 100% | 6.00 | – |
 | Mistral Large 3 675B (`mistral.mistral-large-3-675b-instruct`) | model | 36 | 0.590 | 22% | 94% | 0.42 | 5.4 |
 | max-square-ws (largest square array, ws dataflow) | baseline | 36 | 0.521 | 8% | 100% | 0.00 | – |
 | random feasible design | baseline | 36 | 0.380 | 8% | 100% | 0.00 | – |
 
-DeepSeek V3.2 and Gemma 3 27B are still running (about 40–60 s per turn). Their partial results are in
-`leaderboard.md` and are not ranked here.
+DeepSeek V3.2 is still running (about 60 s per turn). Its partial results are in `leaderboard.md` and are not ranked here.
 
 ### What the results show
 
-- **Experimenting beats size.** The two models that used the simulator budget (about 5 calls per task) beat
-  the 6-probe baseline. Mistral Large 3 answered **33 of 36 tasks without a single simulator call** and scored below
+- **Experimenting beats size.** Every model that used the simulator budget (about 5 calls per task) beat the
+  6-probe baseline. Mistral Large 3 answered **33 of 36 tasks without a single simulator call** and scored below
   6-probe. 2 of its answers used array sizes that are not allowed, so they score 0. gpt-oss 120B used about 3 calls
   and landed in between.
 - **A "bigger array is better" bias.** In 12–17 of the 36 tasks, each model's final array was larger than the
