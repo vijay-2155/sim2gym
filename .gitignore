@@ -7,3 +7,4 @@ cache/
 scalesim_out/
 *.egg-info/
 .env
+results_eval/live/
