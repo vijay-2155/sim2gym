@@ -143,3 +143,14 @@ def test_runs_and_leaderboard(client):
     assert all("transcript" not in r for r in rec["results"])
     lb = client.get("/leaderboard").json()
     assert "rows" in lb and "markdown" in lb
+
+
+def test_insights_first_request_on_fresh_server(tmp_path):
+    """/insights must load the tasks file itself, not rely on an earlier request having loaded it."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    if not (root / "results").exists():
+        pytest.skip("no saved results")
+    c = TestClient(api.create_app(tasks_path=root / "tasks.jsonl", results_dir=root / "results"))
+    d = c.get("/insights").json()
+    assert d["ready"] is True and d["n_tasks"] == 36

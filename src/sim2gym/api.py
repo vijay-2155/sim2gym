@@ -308,8 +308,7 @@ def create_app(tasks_path: str | os.PathLike | None = None, results_dir: str | o
     @app.get("/insights")
     def get_insights():
         """Plain-language analysis of the saved results on the default task set (complete runs only)."""
-        with lock:
-            ts = list(state["task_sets"].get("default", {}).get("tasks", []))
+        ts = list(task_sets().get("default", {}).get("tasks", []))  # loads the tasks file on a fresh server
         return insights.build_insights(ts, results_dir)
 
     # ---------------------------------------------------------- demo

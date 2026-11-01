@@ -23,10 +23,13 @@ FRIENDLY = {
 }
 BASELINE_NAMES = {
     "oracle": "Best possible (every design tried)",
-    "6-probe": "Random search (6 random tries)",
+    "6-probe (exact expectation)": "Random search (6 random tries)",
     "max-square-ws": "Rule of thumb (biggest square chip)",
-    "random": "Random guess",
+    "random (exact expectation)": "Random guess",
 }
+# One seeded draw of a random baseline is luck; we show its exact expectation over every possible draw instead.
+SEEDED = {"6-probe": "6-probe (exact expectation)", "random": "random (exact expectation)"}
+PROBE, RANDOM = SEEDED["6-probe"], SEEDED["random"]
 
 
 def _label(model: str) -> str:
@@ -100,15 +103,21 @@ def build_insights(tasks: list[dict], results_dir) -> dict:
             "no_sim_rate": sum(1 for r in rs if not r.get("sim_calls_used")) / n,
             "params_b": FRIENDLY.get(m, (None, None))[1],
         })
+    table = [x for x in table if x["id"] not in SEEDED]
+    for e in report.expected_baseline_rows(tasks, h):
+        table.append({"id": e["model"], "label": _label(e["model"]), "baseline": True, "exact": True, "n": e["n"],
+                      "mean_score": e["mean_score"], "solve_rate": e["solve_rate"],
+                      "feasible_rate": e["feasible_rate"], "mean_sim_calls": e["mean_sim_calls"],
+                      "oversize_rate": None, "no_sim_rate": None, "params_b": None})
     table.sort(key=lambda x: -x["mean_score"])
     models = [x for x in table if not x["baseline"]]
     base = {x["id"]: x for x in table if x["baseline"]}
-    if not models or "6-probe" not in base:
+    if not models:
         return {"ready": False, "how_it_works": HOW_IT_WORKS}
 
     best = models[0]
-    probe = base["6-probe"]["mean_score"]
-    rand = base["random"]["mean_score"] if "random" in base else None
+    probe = base[PROBE]["mean_score"]
+    rand = base[RANDOM]["mean_score"]
     beat = [x for x in models if x["mean_score"] > probe]
     headline = {"best_model": best["label"], "best_score": best["mean_score"], "probe_score": probe,
                 "random_score": rand, "oracle_score": base.get("oracle", {}).get("mean_score", 1.0),
@@ -125,12 +134,12 @@ def build_insights(tasks: list[dict], results_dir) -> dict:
         findings.append({
             "id": "experiment", "title": "AIs that experiment design better chips",
             "stat": f"{exp_avg:.0%}", "stat_label": "average score of AIs that ran about 5 experiments",
-            "body": f"{len(exp)} of {len(models)} AIs ran about 5 tests per task, and all of them beat random search "
-                    f"({probe:.0%}). {worst_lazy['label']} skipped testing on {worst_lazy['no_sim_rate']:.0%} of "
-                    f"tasks and answered from memory. It scored {worst_lazy['mean_score']:.0%}, worse than six random "
-                    f"tries." if all(x["mean_score"] > probe for x in exp) else
-                    f"AIs that ran about 5 tests averaged {exp_avg:.0%}; {worst_lazy['label']}, which mostly skipped "
-                    f"testing, scored {worst_lazy['mean_score']:.0%}.",
+            "body": f"{worst_lazy['label']} skipped testing on {worst_lazy['no_sim_rate']:.0%} of tasks and "
+                    f"answered from memory. It scored {worst_lazy['mean_score']:.0%}, below six random tries "
+                    f"({probe:.0%}). The {len(exp)} AIs that ran about 5 tests per task averaged {exp_avg:.0%}, but "
+                    + (f"all {len(exp)} beat random search." if all(x["mean_score"] > probe for x in exp) else
+                       f"only {sum(1 for x in exp if x['mean_score'] > probe)} of them beat random search: testing "
+                       f"is necessary, but the AI also has to learn from the results."),
             "takeaway": "When an AI assistant has engineering tools, require it to test before it answers, and check "
                         "that it actually did."})
     # 2. Size is not skill.

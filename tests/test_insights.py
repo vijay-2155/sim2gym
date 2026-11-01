@@ -25,13 +25,18 @@ def test_insights_numbers_match_leaderboard():
     tasks = load_tasks(ROOT / "tasks.jsonl")
     d = build_insights(tasks, ROOT / "results")
     assert d["ready"] and d["n_tasks"] == len(tasks)
-    lb = {r["model"]: r for r in report.build_leaderboard(ROOT / "results", task_set_hash(tasks))["rows"]}
+    lb = {r["model"]: r for r in report.build_leaderboard(ROOT / "results", task_set_hash(tasks), tasks)["rows"]}
     for row in d["rows"]:  # every number traces back to the same saved results as the leaderboard
         assert row["n"] == len(tasks)
         assert row["mean_score"] == pytest.approx(lb[row["id"]]["mean_score"])
     best = next(r for r in d["rows"] if not r["baseline"])
     assert d["headline"]["best_score"] == pytest.approx(best["mean_score"])
-    assert d["headline"]["probe_score"] == pytest.approx(lb["6-probe"]["mean_score"])
+    # Baselines are compared by their exact expectation, never by one seeded draw.
+    assert {r["id"] for r in d["rows"]}.isdisjoint({"6-probe", "random"})
+    assert d["headline"]["probe_score"] == pytest.approx(lb["6-probe (exact expectation)"]["mean_score"])
+    assert d["headline"]["random_score"] == pytest.approx(lb["random (exact expectation)"]["mean_score"])
+    assert d["headline"]["beat_probe"] == sum(1 for r in d["rows"] if not r["baseline"]
+                                              and r["mean_score"] > d["headline"]["probe_score"])
     assert {f["id"] for f in d["findings"]} >= {"oversize", "headroom"}
     ex = d["example"]
     assert ex is None or (ex["answer"]["cycles"] >= ex["optimum"]["cycles"] and len(ex["steps"]) >= 4)

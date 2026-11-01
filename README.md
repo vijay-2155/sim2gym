@@ -39,7 +39,7 @@ cp .env.example .env                 # put OPENROUTER_API_KEY=... in .env (gitig
 .venv/bin/sim2gym run tasks_eval.jsonl --model openrouter:nvidia/nemotron-3.5-super-vl:free --results results_eval
 .venv/bin/sim2gym report results_eval --tasks tasks_eval.jsonl -o leaderboard_eval.md
 .venv/bin/sim2gym serve                              # live demo at http://127.0.0.1:8765/  (API docs: /docs)
-.venv/bin/python -m pytest -q                        # 128 tests
+.venv/bin/python -m pytest -q                        # 131 tests
 ```
 
 The first `build` runs SCALE-Sim over the whole grid: 576 simulations, about 3.5 minutes with 6 workers. After that
